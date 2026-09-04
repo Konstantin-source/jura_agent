@@ -1,0 +1,43 @@
+name: jura-agent
+
+services:
+  jura-agent:
+    container_name: jura-agent
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: jura-agent:local
+    restart: unless-stopped
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:size=256m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    environment:
+      NODE_ENV: production
+      HOSTNAME: 0.0.0.0
+      PORT: 3000
+      DEMO_MODE: ${DEMO_MODE:-false}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_PRIMARY_MODEL: ${OPENAI_PRIMARY_MODEL:-gpt-5.6-terra}
+      SUPABASE_URL: ${SUPABASE_URL:-}
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
+      ALLOWED_EMAILS: ${ALLOWED_EMAILS:-}
+      MONTHLY_AI_BUDGET_EUR: ${MONTHLY_AI_BUDGET_EUR:-10}
+      EUR_PER_USD: ${EUR_PER_USD:-0.92}
+      NEURIS_BASE_URL: ${NEURIS_BASE_URL:-https://testphase.rechtsinformationen.bund.de/v1}
+      LEGAL_SOURCE_CACHE_TTL_SECONDS: ${LEGAL_SOURCE_CACHE_TTL_SECONDS:-86400}
+      APP_URL: ${APP_URL:-http://jura-agent:3000}
+    expose:
+      - "3000"
+    networks:
+      - web-services
+
+networks:
+  web-services:
+    name: ${WEB_SERVICES_NETWORK:-web-services}
+    external: true
