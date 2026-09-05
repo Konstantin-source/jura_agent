@@ -9,6 +9,7 @@ import {
 } from "@/lib/data/persistence";
 import { extractDocumentWithOpenAI, estimatePdfPageCount } from "@/lib/documents/extract";
 import { validateUpload } from "@/lib/documents/policy";
+import { isSameOriginRequest } from "@/lib/security/origin";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -16,6 +17,9 @@ export const maxDuration = 60;
 export async function POST(request: Request) {
   const startedAt = Date.now();
   try {
+    if (!isSameOriginRequest(request)) {
+      return NextResponse.json({ error: "Anfrage von einer fremden Herkunft abgelehnt." }, { status: 403 });
+    }
     const user = await requireAppUser();
     const form = await request.formData();
     const file = form.get("file");
@@ -56,7 +60,7 @@ export async function POST(request: Request) {
     }
 
     const env = getServerEnvironment();
-    const spentEur = await getMonthlySpendEur(user.id);
+    const spentEur = await getMonthlySpendEur();
     const budget = getBudgetState(spentEur, env.MONTHLY_AI_BUDGET_EUR);
     if (budget.blocked) return NextResponse.json({ error: "Das gemeinsame Monatsbudget ist erreicht." }, { status: 402 });
 

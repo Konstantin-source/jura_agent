@@ -6,6 +6,12 @@ describe("cost guard", () => {
     expect(calculateRunCostEur("gpt-5.6-terra", { inputTokens: 1_000_000, outputTokens: 1_000_000 }, 1)).toBe(14);
   });
 
+  it("does not silently estimate an unknown model with the wrong price", () => {
+    expect(() => calculateRunCostEur("unknown-model", { inputTokens: 1, outputTokens: 1 }, 1)).toThrow(
+      "keine geprüfte Preisangabe",
+    );
+  });
+
   it("warns at 80 percent and blocks at 100 percent", () => {
     expect(getBudgetState(8, 10)).toMatchObject({ warning: true, blocked: false });
     expect(getBudgetState(10, 10)).toMatchObject({ warning: false, blocked: true });

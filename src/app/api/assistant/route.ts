@@ -7,6 +7,7 @@ import { getServerEnvironment } from "@/lib/config/env";
 import { calculateRunCostEur, getBudgetState } from "@/lib/cost/pricing";
 import { getMonthlySpendEur, persistInteraction } from "@/lib/data/persistence";
 import { deriveSourceStatus, researchOfficialSources } from "@/lib/legal/composite-provider";
+import { isSameOriginRequest } from "@/lib/security/origin";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -14,6 +15,9 @@ export const maxDuration = 60;
 export async function POST(request: Request) {
   const startedAt = Date.now();
   try {
+    if (!isSameOriginRequest(request)) {
+      return NextResponse.json({ error: "Anfrage von einer fremden Herkunft abgelehnt." }, { status: 403 });
+    }
     const user = await requireAppUser();
     const parsed = assistantRequestSchema.safeParse(await request.json());
     if (!parsed.success) {
@@ -36,7 +40,7 @@ export async function POST(request: Request) {
       });
     }
 
-    const spentEur = await getMonthlySpendEur(user.id);
+    const spentEur = await getMonthlySpendEur();
     const budget = getBudgetState(spentEur, env.MONTHLY_AI_BUDGET_EUR);
     if (budget.blocked) {
       return NextResponse.json(

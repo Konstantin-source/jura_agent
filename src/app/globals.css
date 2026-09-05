@@ -543,6 +543,7 @@ button { color: inherit; }
 .login-form-wrap label > span:first-child { color: var(--muted-strong); font-size: 10px; font-weight: 750; }
 .login-form-wrap input { width: 100%; min-height: 47px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 11px; outline: none; background: var(--surface); color: var(--ink); }
 .login-form-wrap input:focus { border-color: #9dabd8; box-shadow: 0 0 0 3px rgba(82,111,206,.1); }
+.login-form-wrap code { padding: 1px 4px; border-radius: 4px; background: rgba(255,255,255,.55); font-size: .95em; }
 .password-field { position: relative; display: block; }
 .password-field input { padding-right: 44px; }
 .password-field button { position: absolute; top: 6px; right: 6px; display: grid; place-items: center; width: 35px; height: 35px; border: 0; background: transparent; color: var(--muted); cursor: pointer; }
@@ -552,6 +553,12 @@ button { color: inherit; }
 .demo-login > span { color: var(--amber); font-size: 9px; font-weight: 850; letter-spacing: .08em; text-transform: uppercase; }
 .demo-login p { margin: 3px 0 10px; color: #725723; font-size: 10px; }
 .login-legal { display: block; margin-top: 22px; color: #979ca6; text-align: center; font-size: 8px; }
+.setup-form-wrap { width: min(650px, 100%); }
+.setup-form-wrap form { gap: 18px; }
+.setup-users { display: grid; gap: 12px; }
+.setup-account { min-width: 0; margin: 0; padding: 14px; border: 1px solid var(--line); border-radius: 13px; background: rgba(255,255,255,.38); }
+.setup-account legend { display: inline-flex; align-items: center; gap: 6px; padding: 0 5px; color: var(--ink); font-size: 11px; font-weight: 800; }
+.setup-grid { display: grid; gap: 11px; }
 .page-loading { display: grid; min-height: 60vh; place-items: center; color: var(--muted); }
 
 @media (min-width: 640px) {
@@ -574,6 +581,7 @@ button { color: inherit; }
   .document-grid { grid-template-columns: repeat(2, 1fr); }
   .settings-grid { grid-template-columns: repeat(2, 1fr); }
   .settings-card { padding: 23px; }
+  .setup-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
 }
 
 @media (min-width: 1024px) {

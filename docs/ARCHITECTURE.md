@@ -2,15 +2,15 @@
 
 ## Zielbild
 
-Jura Agent ist eine mobile-first Next.js-Webapp für genau zwei freigeschaltete Konten. Der MVP bleibt bewusst monolithisch: UI, serverseitige Route Handler und Provider-Schichten werden gemeinsam auf Vercel betrieben; Supabase übernimmt Authentifizierung, PostgreSQL und privaten Objektspeicher.
+Jura Agent ist eine mobile-first Next.js-Webapp für genau zwei lokale Konten. Der MVP bleibt bewusst monolithisch: UI, serverseitige Route Handler, Authentifizierung, SQLite-Zugriff und Provider-Schichten laufen in einem Node.js-Container. Ein benanntes Docker-Volume hält Datenbank und Originaldateien persistent.
 
 ```mermaid
 flowchart TD
   UI[Next.js Webapp] --> API[Server Route Handler]
   API --> AI[OpenAI Responses API]
   API --> LP[LegalSourceProvider]
-  API --> DB[Supabase Auth + Postgres]
-  API --> FS[Privater Storage]
+  API --> DB[SQLite: Nutzer, Chats, Kosten]
+  API --> FS[Docker-Volume: Uploads]
   LP --> N[NeuRIS Testphase]
   LP --> B[Gesetze im Internet]
   LP --> R[RECHT.NRW]
@@ -18,10 +18,12 @@ flowchart TD
 
 ## Vertrauensgrenzen
 
-- Browser erhalten niemals `OPENAI_API_KEY` oder `SUPABASE_SERVICE_ROLE_KEY`.
-- Produktionsrouten verlangen einen gültigen Supabase-Nutzer und prüfen zusätzlich die exakt zwei Adressen aus `ALLOWED_EMAILS`.
-- Row Level Security bindet alle persönlichen Zeilen an `auth.uid()`.
-- Dokumente liegen im privaten Bucket unter einem Nutzerpräfix.
+- Browser erhalten niemals `OPENAI_API_KEY` oder `SETUP_TOKEN` aus der Serverumgebung.
+- Die einmalige Setup-Transaktion akzeptiert exakt zwei unterschiedliche E-Mail-Adressen. Danach sind weitere Registrierungen gesperrt.
+- Passwörter werden mit scrypt, zufälligem Salt und festen Kostenparametern gehasht. Sitzungen verwenden zufällige Tokens; in SQLite liegt nur deren SHA-256-Hash.
+- Session-Cookies sind `HttpOnly`, `SameSite=Lax` und im HTTPS-Betrieb `Secure`. Mutierende Route Handler prüfen zusätzlich die Herkunft.
+- Jede persönliche SQL-Abfrage enthält die serverseitig ermittelte Nutzer-ID. Dokumentpfade werden gegen Verzeichnisausbruch validiert.
+- Dokumente liegen mit restriktiven Dateirechten unter einem Nutzerpräfix im `/data`-Volume.
 - Inhalte aus Uploads gelten als untrusted input und können keine Systemanweisungen überschreiben.
 - Modellzitate sind nur gültig, wenn ihre IDs aus dem tatsächlichen Provider-Ergebnis stammen.
 
@@ -35,6 +37,12 @@ flowchart TD
 6. OpenAI liefert über Structured Outputs genau eines der drei Schemas. `store: false` verhindert API-seitige Response-Speicherung.
 7. Der Citation Validator verwirft nicht belegte Quellen-IDs.
 8. Antwort, Tokenverbrauch und Kosten werden gespeichert.
+
+## Lokale Datenhaltung
+
+SQLite läuft im WAL-Modus mit aktivierten Fremdschlüsseln, striktem Schema und einer expliziten Schema-Version. Das passt zu einem privaten Ein-Container-Betrieb und vermeidet einen kostenpflichtigen externen Dienst. Mehrere parallel schreibende App-Replikate oder ein gemeinsam verwendetes Netzwerk-Dateisystem sind für diesen MVP nicht vorgesehen.
+
+Das Volume schützt nicht vor einem Administrator des Docker-Hosts. Für sensible Dokumente gehören daher Host-Verschlüsselung, restriktiver Portainer-Zugriff und verschlüsselte Backups zum Betriebsmodell.
 
 ## Quellenstatus
 

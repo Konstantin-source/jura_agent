@@ -2,16 +2,17 @@
 
 ## Ersteinrichtung
 
-1. Ein dediziertes Supabase-Projekt in Frankfurt (`eu-central-1`) erstellen.
-2. Öffentliche Registrierung und alle nicht benötigten Auth-Provider deaktivieren.
-3. `supabase/migrations/202609040001_initial_schema.sql` anwenden.
-4. Zwei Nutzer manuell in Supabase Auth anlegen.
-5. Beide normalisierten E-Mail-Adressen kommasepariert in `ALLOWED_EMAILS` eintragen.
-6. Die Variablen aus `.env.example` auf Vercel konfigurieren; Demo-Schalter in Produktion auf `false` setzen.
+1. Externes Docker-Netzwerk `web-services` in Portainer anlegen oder das vorhandene Netzwerk verwenden.
+2. Stack aus `docker-compose.portainer.yml` erstellen und die Variablen ausschließlich in Portainer setzen.
+3. Einen mindestens 32 Zeichen langen, zufälligen `SETUP_TOKEN` erzeugen und nur für die Ersteinrichtung hinterlegen.
+4. Stack deployen und über `/api/health` die lokale Datenbank prüfen.
+5. Unter `/setup` genau zwei Konten anlegen und beide Anmeldungen testen.
+6. `SETUP_TOKEN` aus Portainer entfernen und neu deployen.
+7. Einen ersten konsistenten Sicherungspunkt des Volumes `jura-agent-data` erstellen.
 
 ## Geheimnisse
 
-`OPENAI_API_KEY` und `SUPABASE_SERVICE_ROLE_KEY` sind ausschließlich serverseitig. Die Service Role ist im aktuellen Request-Pfad nicht erforderlich, wird aber für Wartungsjobs und Cache-Schreibvorgänge vorgesehen. Sie darf nie mit `NEXT_PUBLIC_` beginnen.
+`OPENAI_API_KEY`, `SETUP_TOKEN` und `CLOUDFLARE_TUNNEL_TOKEN` sind ausschließlich serverseitig. Sie werden in Portainer gesetzt, nicht in Dateien des öffentlichen Repositorys. Das Repository ignoriert alle `.env*`-Dateien außer den ausdrücklich leeren Beispieldateien.
 
 ## Kosten
 
@@ -21,15 +22,24 @@ Der Standardwert ist ein gemeinsames Monatslimit von 10 Euro. Preise sind versio
 
 - OpenAI Responses werden mit `store: false` aufgerufen.
 - Für PDF-Extraktion hochgeladene OpenAI-Dateien werden in einem `finally`-Block gelöscht.
-- Originale bleiben privat in Supabase Storage, bis der jeweilige Nutzer sie löscht.
+- Originale bleiben im lokalen Docker-Volume, bis der jeweilige Nutzer sie löscht.
 - Browser-Demo-Daten liegen nur in `localStorage` und sind sichtbar als Demo gekennzeichnet.
+
+## Backup und Wiederherstellung
+
+- Zu sichern ist das vollständige benannte Volume `jura-agent-data`, nicht nur `jura-agent.db`.
+- Für ein einfaches dateibasiertes Backup den App-Container vorher stoppen, damit SQLite-Datei, WAL und Uploads denselben Stand haben.
+- Sicherungen verschlüsseln, getrennt vom Docker-Host aufbewahren und eine Wiederherstellung regelmäßig auf einem separaten Test-Volume prüfen.
+- Updates mit **Pull and redeploy** ersetzen nur den Container. Das benannte Volume muss bestehen bleiben.
+- Der Verlust oder die bewusste Entfernung des Volumes löscht alle beiden Konten, Chats, Kostenprotokolle und Dokumente. Ein Reset ist deshalb immer eine ausdrücklich destruktive Betriebsentscheidung.
 
 ## Checkliste vor Livegang
 
 - `npm run check` erfolgreich
+- `npm run test:storage-smoke` erfolgreich
 - `npm run test:e2e` auf Desktop und Mobile erfolgreich
-- RLS-Policies mit beiden Nutzerkonten und einem nicht berechtigten Testkonto verifiziert
+- Anmeldung und Datentrennung mit beiden Nutzerkonten verifiziert
+- persistentes Volume gesichert und Wiederherstellung getestet
 - NeuRIS-Ausfall und unvollständige Treffer getestet
-- E-Mail-Allowlist enthält exakt zwei Einträge
 - monatliches Budget und EUR/USD-Annahme bestätigt
 - Impressum/Datenschutz für die konkrete private Bereitstellung geprüft

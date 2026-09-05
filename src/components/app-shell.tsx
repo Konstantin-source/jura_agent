@@ -32,8 +32,8 @@ function NavLink({ href, label, icon: Icon, mobile = false }: (typeof navItems)[
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const runtime = useRuntimeConfig();
-  const isLogin = pathname === "/login";
-  if (isLogin) return <>{children}</>;
+  const isAuthPage = pathname === "/login" || pathname === "/setup";
+  if (isAuthPage) return <>{children}</>;
 
   return (
     <div className="app-frame">

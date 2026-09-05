@@ -1,20 +1,18 @@
 import { NextResponse } from "next/server";
-import {
-  getSupabaseRuntimeConfiguration,
-  hasSupabaseConfiguration,
-  isDemoMode,
-} from "@/lib/config/env";
+import { countUsers } from "@/lib/auth/repository";
+import { getServerEnvironment, isDemoMode } from "@/lib/config/env";
 
 export const dynamic = "force-dynamic";
 
 export function GET() {
-  const supabase = getSupabaseRuntimeConfiguration();
+  const demo = isDemoMode();
+  const userCount = demo ? 0 : countUsers();
   return NextResponse.json(
     {
-      mode: isDemoMode() ? "demo" : "live",
-      supabase: hasSupabaseConfiguration()
-        ? { url: supabase.url, anonKey: supabase.anonKey }
-        : null,
+      mode: demo ? "demo" : "live",
+      storage: "local",
+      setupRequired: !demo && userCount !== 2,
+      setupAvailable: !demo && userCount === 0 && Boolean(getServerEnvironment().SETUP_TOKEN),
     },
     { headers: { "Cache-Control": "no-store" } },
   );
