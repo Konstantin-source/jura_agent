@@ -33,7 +33,7 @@ jobs:
           PLAYWRIGHT_SERVER_COMMAND: npm run start -- --hostname 127.0.0.1
         run: npm run test:e2e
       - name: Validate Portainer stack
-        run: docker compose -f docker-compose.portainer.yml config --quiet
+        run: docker compose config --quiet
       - name: Build production container
         run: docker build --tag jura-agent:ci .
       - name: Verify writable persistent volume

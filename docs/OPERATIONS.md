@@ -3,7 +3,7 @@
 ## Ersteinrichtung
 
 1. Externes Docker-Netzwerk `web-services` in Portainer anlegen oder das vorhandene Netzwerk verwenden.
-2. Stack aus `docker-compose.portainer.yml` erstellen und die Variablen ausschließlich in Portainer setzen.
+2. Stack aus `docker-compose.yml` erstellen und die Variablen ausschließlich in Portainer setzen.
 3. Einen mindestens 32 Zeichen langen, zufälligen `SETUP_TOKEN` erzeugen und nur für die Ersteinrichtung hinterlegen.
 4. Stack deployen und über `/api/health` die lokale Datenbank prüfen.
 5. Unter `/setup` genau zwei Konten anlegen und beide Anmeldungen testen.
@@ -12,7 +12,7 @@
 
 ## Geheimnisse
 
-`OPENAI_API_KEY`, `SETUP_TOKEN` und `CLOUDFLARE_TUNNEL_TOKEN` sind ausschließlich serverseitig. Sie werden in Portainer gesetzt, nicht in Dateien des öffentlichen Repositorys. Das Repository ignoriert alle `.env*`-Dateien außer den ausdrücklich leeren Beispieldateien.
+`OPENAI_API_KEY` und `SETUP_TOKEN` sind ausschließlich serverseitig. Sie werden in Portainer gesetzt, nicht in Dateien des öffentlichen Repositorys. Das Repository ignoriert alle `.env*`-Dateien außer den ausdrücklich leeren Beispieldateien.
 
 ## Kosten
 

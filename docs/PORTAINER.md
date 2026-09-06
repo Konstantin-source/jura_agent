@@ -1,4 +1,4 @@
-# Portainer und Cloudflare Tunnel
+# Portainer mit bestehendem Cloudflare Tunnel
 
 Der produktive Container lauscht ausschließlich innerhalb des externen Docker-Netzwerks `web-services` auf **Port 3000**. Es wird bewusst kein Host-Port veröffentlicht. Cloudflare Tunnel ist damit der einzige öffentliche Einstieg.
 
@@ -10,7 +10,7 @@ In Portainer unter **Networks → Add network** ein Bridge-Netzwerk mit dem Name
 
 1. **Stacks → Add stack → Repository** öffnen.
 2. Dieses Repository und den gewünschten Branch eintragen.
-3. Als Compose-Pfad `docker-compose.portainer.yml` verwenden.
+3. Als Compose-Pfad `docker-compose.yml` verwenden. Das ist die einzige Compose-Datei im Repository.
 4. Die unten beschriebenen Stack-Variablen direkt in Portainer eintragen. Keine echte `.env`-Datei committen.
 5. `DEMO_MODE=false` setzen und den Stack deployen.
 
@@ -37,7 +37,6 @@ Das Compose-Setup bindet das benannte Volume `jura-agent-data` unter `/data` ein
 | `LEGAL_SOURCE_CACHE_TTL_SECONDS` | nein | Standard: `86400` |
 | `WEB_SERVICES_NETWORK` | nein | Standard: `web-services` |
 | `JURA_AGENT_DATA_VOLUME` | nein | Standard: `jura-agent-data` |
-| `CLOUDFLARE_TUNNEL_TOKEN` | nur im optionalen Tunnel-Stack | geheimer Tunnel-Token |
 
 `DATA_DIR`, `NODE_ENV`, `HOSTNAME` und `PORT` sind bereits sicher im Compose-Stack gesetzt und müssen nicht manuell eingetragen werden. Ein Setup-Token lässt sich beispielsweise mit `openssl rand -hex 32` erzeugen.
 
@@ -52,13 +51,7 @@ Das Entfernen sperrt den Einrichtungs-Endpunkt zusätzlich ab. Konten und Sitzun
 
 ## 5. Cloudflare anbinden
 
-### Bestehender Tunnel-Container
-
 Den bestehenden `cloudflared`-Container zusätzlich mit `web-services` verbinden. Im Cloudflare Zero Trust Dashboard beim Public Hostname als Service `http://jura-agent:3000` eintragen. Das ist die bevorzugte Variante, weil nur ein Tunnel-Agent gepflegt werden muss.
-
-### Eigener Tunnel für Jura Agent
-
-Falls noch kein Tunnel läuft, einen remotely-managed Tunnel in Cloudflare anlegen, den Token als geheime Portainer-Variable `CLOUDFLARE_TUNNEL_TOKEN` hinterlegen und `docker-compose.cloudflare.yml` als zweiten Stack deployen. Den Token niemals committen. Das Image ist bewusst nicht auf eine veränderliche Version festgelegt; die eingesetzte Version sollte im Betrieb regelmäßig kontrolliert und bei Bedarf fest gepinnt werden.
 
 ## 6. DNS, TLS und Zugriff
 
