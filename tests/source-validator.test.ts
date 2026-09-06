@@ -6,7 +6,7 @@ describe("citation validation", () => {
   it("accepts citations returned by the provider", () => {
     const sources = getDemoSources("§ 280 BGB");
     const answer = createDemoResponse(
-      { mode: "explanation", subject: "Schuldrecht II", query: "§ 280 BGB", attachments: [] },
+      { mode: "explanation", subject: "Schuldrecht II", query: "§ 280 BGB", attachments: [], modelPreset: "normal" },
       sources,
     );
     expect(validateResponseCitations(answer, sources)).toBe(answer);
@@ -15,7 +15,7 @@ describe("citation validation", () => {
   it("rejects model-invented source IDs", () => {
     const sources = getDemoSources("§ 280 BGB");
     const answer = createDemoResponse(
-      { mode: "explanation", subject: "Schuldrecht II", query: "§ 280 BGB", attachments: [] },
+      { mode: "explanation", subject: "Schuldrecht II", query: "§ 280 BGB", attachments: [], modelPreset: "normal" },
       sources,
     );
     answer.citations[0].sourceId = "src_invented";

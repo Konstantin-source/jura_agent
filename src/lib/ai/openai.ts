@@ -12,6 +12,7 @@ import {
   type SourceStatus,
 } from "@/lib/ai/schemas";
 import { buildSystemPrompt, buildUserPrompt } from "@/lib/ai/prompts";
+import { getModelPreset } from "@/lib/ai/models";
 import { getServerEnvironment } from "@/lib/config/env";
 import type { LegalResearchResult } from "@/lib/legal/types";
 import { validateResponseCitations } from "@/lib/legal/source-validator";
@@ -23,11 +24,16 @@ export interface GeneratedAssistantResponse {
   usage: { inputTokens: number; outputTokens: number };
 }
 
-const MODE_SETTINGS = {
-  explanation: { effort: "low" as const, maxOutputTokens: 2_200 },
-  socratic: { effort: "medium" as const, maxOutputTokens: 1_300 },
-  correction: { effort: "high" as const, maxOutputTokens: 4_800 },
-};
+const GENERIC_SOURCE_UNCERTAINTY = /(?:keine|ohne).*(?:amtliche|bereitgestellte).*quelle|quellen-id|(?:aktuelle|konkrete).*(?:geltung|fassung).*nicht.*verifiziert/i;
+
+function removeRedundantSourceWarnings(answer: AssistantResponse): AssistantResponse {
+  return {
+    ...answer,
+    uncertainties: answer.uncertainties
+      .filter((uncertainty) => !GENERIC_SOURCE_UNCERTAINTY.test(uncertainty))
+      .slice(0, 2),
+  } as AssistantResponse;
+}
 
 export async function generateWithOpenAI(
   request: AssistantRequest,
@@ -37,7 +43,7 @@ export async function generateWithOpenAI(
   const env = getServerEnvironment();
   if (!env.OPENAI_API_KEY) throw new Error("OPENAI_API_KEY fehlt.");
   const client = new OpenAI({ apiKey: env.OPENAI_API_KEY });
-  const settings = MODE_SETTINGS[request.mode];
+  const preset = getModelPreset(request.modelPreset);
   const schema =
     request.mode === "correction"
       ? correctionResponseSchema
@@ -46,10 +52,10 @@ export async function generateWithOpenAI(
         : explanationResponseSchema;
 
   const response = await client.responses.parse({
-    model: env.OPENAI_PRIMARY_MODEL,
+    model: preset.model,
     store: false,
-    reasoning: { effort: settings.effort },
-    max_output_tokens: settings.maxOutputTokens,
+    reasoning: { effort: preset.reasoningEffort },
+    max_output_tokens: preset.maxOutputTokens[request.mode],
     input: [
       { role: "system", content: buildSystemPrompt(request, research, sourceStatus) },
       { role: "user", content: buildUserPrompt(request) },
@@ -66,11 +72,11 @@ export async function generateWithOpenAI(
     throw new Error(refusal?.refusal ?? "Das Modell lieferte keine strukturierte Antwort.");
   }
 
-  const answer = assistantResponseSchema.parse(response.output_parsed);
+  const answer = removeRedundantSourceWarnings(assistantResponseSchema.parse(response.output_parsed));
   validateResponseCitations(answer, research.sources);
   return {
     answer,
-    model: env.OPENAI_PRIMARY_MODEL,
+    model: preset.model,
     responseId: response.id,
     usage: {
       inputTokens: response.usage?.input_tokens ?? 0,

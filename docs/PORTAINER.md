@@ -30,8 +30,7 @@ Das Compose-Setup bindet das benannte Volume `jura-agent-data` unter `/data` ein
 | `OPENAI_API_KEY` | ja | geheimer OpenAI-API-Schlüssel |
 | `APP_URL` | ja | öffentliche HTTPS-Adresse, z. B. `https://jura.example.com` |
 | `SETUP_TOKEN` | nur erstmalig | mindestens 32 zufällige Zeichen; nach der Kontoeinrichtung entfernen |
-| `OPENAI_PRIMARY_MODEL` | nein | Standard: `gpt-5.6-terra`; alternativ `gpt-5.6-luna` |
-| `MONTHLY_AI_BUDGET_EUR` | nein | Standard: `10` |
+| `MONTHLY_AI_BUDGET_EUR` | nein | Standard: `5`; nur die Zahl ohne `€` oder `$` eintragen |
 | `EUR_PER_USD` | nein | Standard: `0.92` |
 | `NEURIS_BASE_URL` | nein | Standard: amtliche NeuRIS-Testphasen-API |
 | `LEGAL_SOURCE_CACHE_TTL_SECONDS` | nein | Standard: `86400` |
@@ -39,6 +38,8 @@ Das Compose-Setup bindet das benannte Volume `jura-agent-data` unter `/data` ein
 | `JURA_AGENT_DATA_VOLUME` | nein | Standard: `jura-agent-data` |
 
 `DATA_DIR`, `NODE_ENV`, `HOSTNAME` und `PORT` sind bereits sicher im Compose-Stack gesetzt und müssen nicht manuell eingetragen werden. Ein Setup-Token lässt sich beispielsweise mit `openssl rand -hex 32` erzeugen.
+
+Das Modell wird pro Anfrage direkt im Chat gewählt: **Sparsam** und **Normal** verwenden Luna, **Stärker** verwendet Terra und **Stark** verwendet Sol. Für die Dokumenterkennung wird aus Kostengründen Luna verwendet.
 
 ## 4. Konten einmalig anlegen
 

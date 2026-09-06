@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { DEFAULT_MODEL_PRESET, MODEL_PRESET_IDS } from "@/lib/ai/models";
 
 export const learningModeSchema = z.enum(["explanation", "socratic", "correction"]);
 export type LearningMode = z.infer<typeof learningModeSchema>;
@@ -22,21 +23,21 @@ export const citationSchema = z
 const baseResponseFields = {
   citations: z.array(citationSchema),
   sourceStatus: sourceStatusSchema,
-  uncertainties: z.array(z.string()),
+  uncertainties: z.array(z.string().max(280)).max(2),
 } as const;
 
 export const explanationResponseSchema = z
   .object({
     mode: z.literal("explanation"),
-    title: z.string(),
-    shortExplanation: z.string(),
-    preciseExplanation: z.string(),
-    example: z.string(),
-    examRelevance: z.string(),
-    typicalErrors: z.array(z.string()),
-    connections: z.array(z.string()),
+    title: z.string().max(100),
+    shortExplanation: z.string().max(700),
+    preciseExplanation: z.string().max(1_500),
+    example: z.string().max(600),
+    examRelevance: z.string().max(500),
+    typicalErrors: z.array(z.string().max(280)).max(2),
+    connections: z.array(z.string().max(220)).max(1),
     ...baseResponseFields,
-    nextActions: z.array(z.string()),
+    nextActions: z.array(z.string().max(220)).max(1),
   })
   .strict();
 
@@ -128,6 +129,7 @@ export const assistantRequestSchema = z
     query: z.string().min(2).max(20_000),
     conversationId: z.string().uuid().nullable().optional(),
     attachments: z.array(attachmentReferenceSchema).max(10).optional(),
+    modelPreset: z.enum(MODEL_PRESET_IDS).default(DEFAULT_MODEL_PRESET),
   })
   .strict();
 

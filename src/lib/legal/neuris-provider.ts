@@ -30,6 +30,15 @@ interface NeurisCollection {
   member?: NeurisSearchResult[];
 }
 
+export interface NeurisConnectionStatus {
+  reachable: boolean;
+  message: string;
+  checkedAt: string;
+}
+
+const PROBE_TTL_MS = 5 * 60 * 1_000;
+const probeCache = new Map<string, { expiresAt: number; status: NeurisConnectionStatus }>();
+
 function normalizeApiUrl(baseUrl: string, id: string): string {
   if (id.startsWith("http")) return id;
   const origin = new URL(baseUrl).origin;
@@ -84,9 +93,10 @@ export class NeurisProvider implements LegalSourceProvider {
     const payload = (await response.json()) as NeurisCollection;
     const verifiedAt = new Date().toISOString();
 
-    return (payload.member ?? []).map((result) => {
+    return (payload.member ?? []).flatMap((result) => {
       const item = result.item ?? {};
       const expressionId = item.workExample?.["@id"] ?? item["@id"] ?? "";
+      if (!expressionId) return [];
       const apiUrl = normalizeApiUrl(this.baseUrl, expressionId);
       const humanUrl = toHumanUrl(apiUrl, kind);
       const title =
@@ -97,7 +107,7 @@ export class NeurisProvider implements LegalSourceProvider {
         item.documentNumber ??
         "Amtliches Rechtsdokument";
 
-      return {
+      return [{
         id: makeSourceId(this.name, apiUrl),
         title,
         kind,
@@ -116,7 +126,7 @@ export class NeurisProvider implements LegalSourceProvider {
           documentType: item.documentType ?? null,
           inForce: item.inForce ?? null,
         },
-      };
+      }];
     });
   }
 
@@ -155,4 +165,34 @@ export class NeurisProvider implements LegalSourceProvider {
     });
     return first ?? null;
   }
+}
+
+export async function checkNeurisConnection(
+  baseUrl: string,
+  options: { force?: boolean } = {},
+): Promise<NeurisConnectionStatus> {
+  const cached = probeCache.get(baseUrl);
+  if (!options.force && cached && cached.expiresAt > Date.now()) return cached.status;
+
+  const checkedAt = new Date().toISOString();
+  let status: NeurisConnectionStatus;
+  try {
+    const url = new URL(`${baseUrl.replace(/\/$/, "")}/legislation`);
+    url.searchParams.set("searchTerm", "BGB");
+    url.searchParams.set("size", "1");
+    const response = await fetchWithTimeout(url, {}, 5_000);
+    if (!response.ok) {
+      status = { reachable: false, message: `HTTP ${response.status}`, checkedAt };
+    } else {
+      const payload = (await response.json()) as NeurisCollection;
+      status = Array.isArray(payload.member)
+        ? { reachable: true, message: "Live-Abruf erfolgreich", checkedAt }
+        : { reachable: false, message: "Unerwartetes Antwortformat", checkedAt };
+    }
+  } catch (error) {
+    const message = error instanceof Error && error.name === "AbortError" ? "Zeitüberschreitung" : "Nicht erreichbar";
+    status = { reachable: false, message, checkedAt };
+  }
+  probeCache.set(baseUrl, { status, expiresAt: Date.now() + PROBE_TTL_MS });
+  return status;
 }

@@ -30,6 +30,10 @@ export function buildSystemPrompt(
     "Zitiere nur Quellen-IDs aus dem folgenden Block. Wenn der Block leer ist, muss citations leer bleiben.",
     renderSources(research),
     research.warnings.length ? `Abrufwarnungen: ${research.warnings.join(" | ")}` : "Abrufwarnungen: keine",
+    "Antworte unmittelbar auf die konkrete Frage. Wiederhole die Frage nicht und ergänze keine allgemeine Einleitung.",
+    "Halte die sichtbare Antwort knapp: kurze Absätze, höchstens zwei typische Fehler und keine Wiederholungen zwischen den Feldern.",
+    "Beispiel, Klausurrelevanz, Verbindung oder Lernschritt nur ausfüllen, wenn sie die konkrete Antwort wirklich verbessern; sonst leere Zeichenfolge beziehungsweise leere Liste.",
+    "Der Quellenstatus genügt als Hinweis auf fehlende Aktualitätsprüfung. Wiederhole diesen Hinweis nicht zusätzlich unter Unsicherheiten.",
     "Gib ausschließlich die verlangte strukturierte Antwort aus. Keine Markdown-Fundnoten außerhalb des Schemas.",
   ].join("\n\n");
 }

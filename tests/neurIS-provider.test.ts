@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { NeurisProvider } from "@/lib/legal/neuris-provider";
+import { checkNeurisConnection, NeurisProvider } from "@/lib/legal/neuris-provider";
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -32,5 +32,22 @@ describe("NeurisProvider", () => {
     expect(result.url).toContain("/norms/eli/bund/");
     expect(result.excerpt).toContain("§ 1");
     expect(result.verifiedAt).not.toBeNull();
+  });
+
+  it("reports reachability only after validating the live response shape", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ member: [] }), { status: 200, headers: { "Content-Type": "application/json" } }),
+      ),
+    );
+    await expect(checkNeurisConnection("https://testphase.rechtsinformationen.bund.de/v1", { force: true }))
+      .resolves.toMatchObject({ reachable: true, message: "Live-Abruf erfolgreich" });
+  });
+
+  it("does not mistake a configured URL for a working integration", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("Fehler", { status: 503 })));
+    await expect(checkNeurisConnection("https://example.test/v1", { force: true }))
+      .resolves.toMatchObject({ reachable: false, message: "HTTP 503" });
   });
 });

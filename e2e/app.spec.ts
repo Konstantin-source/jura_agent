@@ -11,10 +11,14 @@ test("dashboard exposes the three core modes", async ({ page }) => {
 
 test("creates a transparent structured demo explanation", async ({ page }) => {
   await page.goto("/lernen?mode=explanation");
+  const modelSelect = page.getByRole("combobox", { name: "Modellstärke" });
+  await expect(modelSelect).toHaveValue("normal");
+  await expect(modelSelect.locator("option")).toHaveCount(4);
+  await modelSelect.selectOption("advanced");
   await page.getByRole("button", { name: "Wie prüfe ich die Rücknahme nach § 48 VwVfG?" }).click();
   await page.getByRole("button", { name: "Absenden" }).click();
   await expect(page.getByText("Demoantwort", { exact: true })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Juristisch präzise" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Genauer" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Verwendete Quellen" })).toBeVisible();
 });
 

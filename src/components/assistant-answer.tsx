@@ -63,6 +63,8 @@ function SourceCards({ answer, sources }: { answer: AssistantResponse; sources: 
 }
 
 function ExplanationAnswer({ answer, sources }: { answer: Extract<AssistantResponse, { mode: "explanation" }>; sources: LegalSourceRecord[] }) {
+  const hasCallouts = Boolean(answer.example.trim() || answer.examRelevance.trim());
+  const hasExtras = answer.typicalErrors.length > 0 || answer.connections.length > 0;
   return (
     <article className="assistant-answer">
       <header className="answer-hero">
@@ -71,34 +73,34 @@ function ExplanationAnswer({ answer, sources }: { answer: Extract<AssistantRespo
         <StatusBadge status={answer.sourceStatus} compact />
       </header>
       <div className="answer-lead">{answer.shortExplanation}</div>
-      <section className="answer-block">
-        <div className="answer-section-title"><BookOpenCheck size={18} /><h3>Juristisch präzise</h3></div>
+      {answer.preciseExplanation.trim() && <section className="answer-block">
+        <div className="answer-section-title"><BookOpenCheck size={18} /><h3>Genauer</h3></div>
         <p>{answer.preciseExplanation}</p>
-      </section>
-      <div className="answer-two-column">
-        <section className="answer-callout example">
+      </section>}
+      {hasCallouts && <div className="answer-two-column">
+        {answer.example.trim() && <section className="answer-callout example">
           <div className="answer-section-title"><Lightbulb size={18} /><h3>Mini-Beispiel</h3></div>
           <p>{answer.example}</p>
-        </section>
-        <section className="answer-callout exam">
+        </section>}
+        {answer.examRelevance.trim() && <section className="answer-callout exam">
           <div className="answer-section-title"><Target size={18} /><h3>Klausurrelevanz</h3></div>
           <p>{answer.examRelevance}</p>
-        </section>
-      </div>
-      <div className="answer-two-column compact-columns">
-        <section className="answer-block">
+        </section>}
+      </div>}
+      {hasExtras && <div className="answer-two-column compact-columns">
+        {answer.typicalErrors.length > 0 && <section className="answer-block">
           <div className="answer-section-title warning"><AlertTriangle size={18} /><h3>Typische Fehler</h3></div>
           <BulletList items={answer.typicalErrors} tone="warning" />
-        </section>
-        <section className="answer-block">
+        </section>}
+        {answer.connections.length > 0 && <section className="answer-block">
           <div className="answer-section-title"><Link2 size={18} /><h3>Verbindungen</h3></div>
           <BulletList items={answer.connections} />
-        </section>
-      </div>
-      <section className="next-steps">
+        </section>}
+      </div>}
+      {answer.nextActions.length > 0 && <section className="next-steps">
         <div className="answer-section-title"><ListChecks size={18} /><h3>So lernst du weiter</h3></div>
         <ol>{answer.nextActions.map((action, index) => <li key={action}><span>{index + 1}</span>{action}</li>)}</ol>
-      </section>
+      </section>}
       <SourceCards answer={answer} sources={sources} />
     </article>
   );

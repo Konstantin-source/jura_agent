@@ -7,7 +7,12 @@ import { Check, CircleAlert, Database, ExternalLink, KeyRound, LogOut, Scale, Se
 interface Health {
   status: string;
   mode: "demo" | "live";
-  integrations: { openai: boolean; localDatabase: boolean; neuris: boolean };
+  integrations: {
+    openai: boolean;
+    localDatabase: boolean;
+    neuris: boolean;
+    neurisStatus?: { reachable: boolean; message: string; checkedAt: string | null };
+  };
 }
 
 interface AccountState {
@@ -28,7 +33,7 @@ export function SettingsPanel() {
   const [logoutBusy, setLogoutBusy] = useState(false);
   const [logoutError, setLogoutError] = useState<string | null>(null);
   useEffect(() => {
-    fetch("/api/health", { cache: "no-store" })
+    fetch("/api/health?probe=1", { cache: "no-store" })
       .then((response) => response.json() as Promise<Health>)
       .then(setHealth)
       .catch(() => undefined);
@@ -39,7 +44,7 @@ export function SettingsPanel() {
   }, []);
   const demo = account ? account.user.demo : !health || health.mode === "demo";
   const spent = account?.budget.monthlySpendEur ?? 0;
-  const budget = account?.budget.monthlyLimitEur ?? 10;
+  const budget = account?.budget.monthlyLimitEur ?? 5;
   const usagePercent = budget > 0 ? Math.min(100, (spent / budget) * 100) : 0;
   const initials = (account?.user.displayName ?? "JA").split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase();
 
@@ -71,7 +76,7 @@ export function SettingsPanel() {
         </section>
 
         <section className="settings-card budget-settings">
-          <div className="settings-card-head"><span><WalletCards size={20} /></span><div><p className="section-kicker">Kostenbremse</p><h2>10 € pro Monat</h2></div></div>
+          <div className="settings-card-head"><span><WalletCards size={20} /></span><div><p className="section-kicker">Kostenbremse</p><h2>{budget.toLocaleString("de-DE")} € pro Monat</h2></div></div>
           <div className="budget-value"><strong>{spent.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €</strong><span>von {budget.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €</span></div>
           <div className="budget-track"><span style={{ width: `${usagePercent}%` }} /></div>
           <p>Warnung ab 80 %. Bei 100 % werden neue KI-Läufe blockiert. Amtliche Quellensuche bleibt davon getrennt.</p>
@@ -82,7 +87,12 @@ export function SettingsPanel() {
           <div className="integration-list">
             <IntegrationRow label="OpenAI Responses API" description="Strukturierte Lernantworten" ready={Boolean(health?.integrations.openai)} icon={Scale} />
             <IntegrationRow label="Lokaler Speicher" description="SQLite und privates Docker-Volume" ready={Boolean(health?.integrations.localDatabase || demo)} icon={Database} />
-            <IntegrationRow label="NeuRIS Provider" description={demo ? "Im Demo-Modus nicht live geprüft" : "Amtliche Testphasen-API"} ready={Boolean(health?.integrations.neuris && !demo)} icon={ShieldCheck} />
+            <IntegrationRow
+              label="NeuRIS Provider"
+              description={demo ? "Im Demo-Modus nicht live geprüft" : health?.integrations.neurisStatus?.message ?? "Verbindung wird geprüft …"}
+              ready={Boolean(health?.integrations.neuris && !demo)}
+              icon={ShieldCheck}
+            />
           </div>
         </section>
 
