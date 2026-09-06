@@ -2,7 +2,8 @@ import "server-only";
 
 import { mkdir, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
-import type { AssistantRequest, AssistantResponse } from "@/lib/ai/schemas";
+import type { DatabaseSync } from "node:sqlite";
+import type { AssistantRequest, AssistantResponse, ConversationContextMessage } from "@/lib/ai/schemas";
 import type { GeneratedAssistantResponse } from "@/lib/ai/openai";
 import { getDatabase, resolveStoredFile, withImmediateTransaction } from "@/lib/db/database";
 import type { LegalSourceRecord } from "@/lib/legal/types";
@@ -166,7 +167,7 @@ export async function getConversation(userId: string, id: string) {
     SELECT id, role, content_json, citations_json, created_at
     FROM messages
     WHERE conversation_id = ? AND user_id = ?
-    ORDER BY created_at ASC
+    ORDER BY created_at ASC, rowid ASC
   `).all(id, userId) as Array<{
     id: string;
     role: string;
@@ -184,6 +185,36 @@ export async function getConversation(userId: string, id: string) {
       created_at: row.created_at,
     })),
   };
+}
+
+export function getConversationContext(
+  userId: string,
+  conversationId: string,
+  db: DatabaseSync = getDatabase(),
+): ConversationContextMessage[] {
+  const owned = db
+    .prepare("SELECT id FROM conversations WHERE id = ? AND user_id = ?")
+    .get(conversationId, userId);
+  if (!owned) throw new Error("Der angegebene Chat gehört nicht zu diesem Konto.");
+
+  const rows = db.prepare(`
+    SELECT role, content_json
+    FROM messages
+    WHERE conversation_id = ? AND user_id = ? AND role IN ('user', 'assistant')
+    ORDER BY created_at DESC, rowid DESC
+    LIMIT 8
+  `).all(conversationId, userId) as Array<{ role: "user" | "assistant"; content_json: string }>;
+
+  return rows.reverse().flatMap<ConversationContextMessage>((row): ConversationContextMessage[] => {
+    const stored = parseJson<{ text?: unknown; answer?: unknown }>(row.content_json, {});
+    if (row.role === "user" && typeof stored.text === "string") {
+      return [{ role: "user" as const, content: stored.text.slice(0, 4_000) }];
+    }
+    if (row.role === "assistant" && stored.answer && typeof stored.answer === "object" && !Array.isArray(stored.answer)) {
+      return [{ role: "assistant" as const, content: JSON.stringify(stored.answer).slice(0, 6_000) }];
+    }
+    return [];
+  });
 }
 
 export async function persistDocument(

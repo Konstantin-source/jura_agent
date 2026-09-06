@@ -9,6 +9,7 @@ import {
   socraticResponseSchema,
   type AssistantRequest,
   type AssistantResponse,
+  type ConversationContextMessage,
   type SourceStatus,
 } from "@/lib/ai/schemas";
 import { buildSystemPrompt, buildUserPrompt } from "@/lib/ai/prompts";
@@ -39,6 +40,7 @@ export async function generateWithOpenAI(
   request: AssistantRequest,
   research: LegalResearchResult,
   sourceStatus: SourceStatus,
+  history: ConversationContextMessage[] = [],
 ): Promise<GeneratedAssistantResponse> {
   const env = getServerEnvironment();
   if (!env.OPENAI_API_KEY) throw new Error("OPENAI_API_KEY fehlt.");
@@ -58,6 +60,7 @@ export async function generateWithOpenAI(
     max_output_tokens: preset.maxOutputTokens[request.mode],
     input: [
       { role: "system", content: buildSystemPrompt(request, research, sourceStatus) },
+      ...history.map((message) => ({ role: message.role, content: message.content })),
       { role: "user", content: buildUserPrompt(request) },
     ],
     text: {

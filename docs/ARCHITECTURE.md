@@ -31,12 +31,13 @@ flowchart TD
 
 1. Anfrage und Anhänge werden mit Zod validiert.
 2. Die Kostenbremse prüft den gemeinsamen Monatsverbrauch.
-3. Die Retrieval-Entscheidung verlangt amtliche Recherche bei konkreten Normen, Aktualitätsfragen, Rechtsprechung und jeder Korrektur.
-4. Der Composite Provider fragt höchstens drei externe Quellenwege ab und gibt strukturierte Quellenobjekte zurück.
-5. Fach-, Methoden- und Modus-Skills werden deterministisch aus `skills/*.md` aufgelöst.
-6. OpenAI liefert über Structured Outputs genau eines der drei Schemas. `store: false` verhindert API-seitige Response-Speicherung.
-7. Der Citation Validator verwirft nicht belegte Quellen-IDs.
-8. Antwort, Tokenverbrauch und Kosten werden gespeichert.
+3. Bei einer Folgefrage werden die letzten acht Nachrichten des eigenen Chats serverseitig geladen. Der Browser kann keinen fremden Verlauf einschleusen.
+4. Jede juristische Lernfrage löst eine kontrollierte amtliche Recherche aus; natürliche Fragen werden dafür in fokussierte Suchbegriffe zerlegt.
+5. Der Composite Provider fragt höchstens drei externe Quellenwege ab und gibt strukturierte Quellenobjekte zurück.
+6. Fach-, Methoden- und Modus-Skills werden deterministisch aus `skills/*.md` aufgelöst.
+7. OpenAI erhält den begrenzten Chatkontext und liefert über Structured Outputs genau eines der drei Schemas. `store: false` verhindert API-seitige Response-Speicherung.
+8. Der Citation Validator verwirft nicht belegte Quellen-IDs.
+9. Nutzerfrage, Antwort, Tokenverbrauch und Kosten werden gespeichert und im vollständigen Chatverlauf angezeigt.
 
 ## Lokale Datenhaltung
 

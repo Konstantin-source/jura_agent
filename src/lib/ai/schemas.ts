@@ -113,6 +113,11 @@ export type ExplanationResponse = z.infer<typeof explanationResponseSchema>;
 export type SocraticResponse = z.infer<typeof socraticResponseSchema>;
 export type CorrectionResponse = z.infer<typeof correctionResponseSchema>;
 
+export interface ConversationContextMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
 export const attachmentReferenceSchema = z
   .object({
     id: z.string(),
