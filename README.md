@@ -44,7 +44,7 @@ Der App-Container lauscht intern auf **Port 3000** und veröffentlicht bewusst k
 http://jura-agent:3000
 ```
 
-Portainer baut `docker-compose.portainer.yml` direkt aus dem Repository. Echte Werte werden ausschließlich als Stack-Variablen in Portainer gesetzt. Das Compose-Setup legt das persistente Volume `jura-agent-data` für Datenbank und Uploads an.
+Portainer baut die einzige `docker-compose.yml` direkt aus dem Repository. Echte Werte werden ausschließlich als Stack-Variablen in Portainer gesetzt. Das Compose-Setup legt das persistente Volume `jura-agent-data` für Datenbank und Uploads an.
 
 Nach dem ersten Deployment:
 
