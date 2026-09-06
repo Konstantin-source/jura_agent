@@ -9,6 +9,7 @@ import {
   Camera,
   Check,
   FileCheck2,
+  Gauge,
   LoaderCircle,
   MessageCircleQuestion,
   Paperclip,
@@ -20,6 +21,7 @@ import type { AssistantResponse, LearningMode } from "@/lib/ai/schemas";
 import type { LegalSourceRecord } from "@/lib/legal/types";
 import { AssistantAnswerView } from "@/components/assistant-answer";
 import { useRuntimeConfig } from "@/components/runtime-provider";
+import { DEFAULT_MODEL_PRESET, MODEL_PRESETS, type ModelPresetId } from "@/lib/ai/models";
 
 interface Attachment {
   id: string;
@@ -32,7 +34,7 @@ interface ApiResult {
   answer: AssistantResponse;
   sources: LegalSourceRecord[];
   conversationId: string;
-  meta: { demo: boolean; sourceStatus: string; durationMs: number; costEur: number };
+  meta: { demo: boolean; sourceStatus: string; durationMs: number; costEur: number; model?: string; modelPreset?: ModelPresetId };
 }
 
 const MODES: Array<{ id: LearningMode; label: string; short: string; icon: typeof Sparkles }> = [
@@ -98,8 +100,13 @@ export function LearningWorkspace() {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [uploadNote, setUploadNote] = useState<string | null>(null);
+  const [modelPreset, setModelPreset] = useState<ModelPresetId>(DEFAULT_MODEL_PRESET);
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const activeMode = useMemo(() => MODES.find((item) => item.id === mode) ?? MODES[0], [mode]);
+  const activeModel = useMemo(
+    () => MODEL_PRESETS.find((preset) => preset.id === modelPreset) ?? MODEL_PRESETS[1],
+    [modelPreset],
+  );
 
   useEffect(() => {
     if (searchParams.get("prompt")) composerRef.current?.focus();
@@ -146,6 +153,7 @@ export function LearningWorkspace() {
           query: effectiveQuery,
           conversationId: result?.conversationId ?? null,
           attachments,
+          modelPreset,
         }),
       });
       const payload = (await response.json()) as ApiResult & { error?: string };
@@ -239,7 +247,7 @@ export function LearningWorkspace() {
         <form className="composer" onSubmit={submit}>
           <div className="composer-topline">
             <span>{activeMode.label}</span>
-            <span>{subject}</span>
+            <span>{subject} · {activeModel.label}</span>
           </div>
           {attachments.length > 0 && (
             <div className="composer-attachments">
@@ -255,6 +263,19 @@ export function LearningWorkspace() {
           <div className="composer-tools">
             <label className={uploading ? "is-disabled" : ""}><Paperclip size={17} /><span>Datei</span><input type="file" accept="application/pdf,text/plain,text/markdown,image/jpeg,image/png,image/webp,image/heic,image/heif" disabled={uploading} onChange={(event) => { void upload(event.target.files?.[0]); event.currentTarget.value = ""; }} /></label>
             <label className={uploading ? "is-disabled" : ""}><Camera size={17} /><span>Foto</span><input type="file" accept="image/*" capture="environment" disabled={uploading} onChange={(event) => { void upload(event.target.files?.[0]); event.currentTarget.value = ""; }} /></label>
+            <label className="model-picker" title={activeModel.description}>
+              <Gauge size={17} />
+              <select
+                aria-label="Modellstärke"
+                value={modelPreset}
+                onChange={(event) => {
+                  const next = event.target.value as ModelPresetId;
+                  setModelPreset(next);
+                }}
+              >
+                {MODEL_PRESETS.map((preset) => <option key={preset.id} value={preset.id}>{preset.label} · {preset.model.replace("gpt-5.6-", "")}</option>)}
+              </select>
+            </label>
             {uploading && <span className="uploading-label"><LoaderCircle className="spin" size={15} /> Datei wird geprüft …</span>}
             <span className="composer-privacy">Privat · max. 25 MB</span>
           </div>

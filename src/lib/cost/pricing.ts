@@ -8,6 +8,12 @@ export interface ModelPrice {
 // Versioned snapshot. Review against the official OpenAI pricing page before changing models.
 export const MODEL_PRICES: ModelPrice[] = [
   {
+    model: "gpt-5.6-sol",
+    inputUsdPerMillion: 4,
+    outputUsdPerMillion: 20,
+    effectiveFrom: "2026-09-06",
+  },
+  {
     model: "gpt-5.6-terra",
     inputUsdPerMillion: 2,
     outputUsdPerMillion: 12,

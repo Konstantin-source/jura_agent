@@ -5,6 +5,7 @@ import { zodTextFormat } from "openai/helpers/zod";
 import sharp from "sharp";
 import { z } from "zod";
 import { getServerEnvironment } from "@/lib/config/env";
+import { getModelPreset } from "@/lib/ai/models";
 import { MAX_AI_PAGES, MAX_PDF_PAGES } from "@/lib/documents/policy";
 
 export const documentExtractionSchema = z
@@ -69,6 +70,7 @@ export async function extractDocumentWithOpenAI(file: File): Promise<ExtractedDo
   }
 
   let uploadedFileId: string | null = null;
+  const extractionModel = getModelPreset("normal").model;
   try {
     const content: Array<
       | { type: "input_text"; text: string }
@@ -90,7 +92,7 @@ export async function extractDocumentWithOpenAI(file: File): Promise<ExtractedDo
     content.push({ type: "input_text", text: extractionInstruction(estimatedPages) });
 
     const response = await client.responses.parse({
-      model: env.OPENAI_PRIMARY_MODEL,
+      model: extractionModel,
       store: false,
       reasoning: { effort: "low" },
       max_output_tokens: 6_000,
@@ -105,7 +107,7 @@ export async function extractDocumentWithOpenAI(file: File): Promise<ExtractedDo
         pageCount: extraction.pageCount ?? estimatedPages,
       },
       responseId: response.id,
-      model: env.OPENAI_PRIMARY_MODEL,
+      model: extractionModel,
       usage: {
         inputTokens: response.usage?.input_tokens ?? 0,
         outputTokens: response.usage?.output_tokens ?? 0,

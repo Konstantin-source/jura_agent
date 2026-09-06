@@ -36,7 +36,7 @@ export async function POST(request: Request) {
         answer: createDemoResponse(input, sources, sourceStatus),
         sources,
         conversationId: input.conversationId ?? crypto.randomUUID(),
-        meta: { demo: true, sourceStatus, durationMs: Date.now() - startedAt, costEur: 0 },
+        meta: { demo: true, sourceStatus, durationMs: Date.now() - startedAt, costEur: 0, modelPreset: input.modelPreset },
       });
     }
 
@@ -69,6 +69,7 @@ export async function POST(request: Request) {
       meta: {
         demo: false,
         model: generated.model,
+        modelPreset: input.modelPreset,
         sourceStatus,
         durationMs: Date.now() - startedAt,
         costEur,

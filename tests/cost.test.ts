@@ -4,6 +4,7 @@ import { calculateRunCostEur, getBudgetState } from "@/lib/cost/pricing";
 describe("cost guard", () => {
   it("calculates input and output cost from the versioned price table", () => {
     expect(calculateRunCostEur("gpt-5.6-terra", { inputTokens: 1_000_000, outputTokens: 1_000_000 }, 1)).toBe(14);
+    expect(calculateRunCostEur("gpt-5.6-sol", { inputTokens: 1_000_000, outputTokens: 1_000_000 }, 1)).toBe(24);
   });
 
   it("does not silently estimate an unknown model with the wrong price", () => {

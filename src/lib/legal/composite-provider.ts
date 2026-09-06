@@ -1,6 +1,6 @@
 import type { LearningMode, SourceStatus } from "@/lib/ai/schemas";
 import { getServerEnvironment } from "@/lib/config/env";
-import { decideLegalRetrieval } from "@/lib/legal/query-parser";
+import { buildLegalSearchQueries, decideLegalRetrieval } from "@/lib/legal/query-parser";
 import { FederalLawProvider } from "@/lib/legal/federal-provider";
 import { NeurisProvider } from "@/lib/legal/neuris-provider";
 import { NrwLawProvider } from "@/lib/legal/nrw-provider";
@@ -34,12 +34,16 @@ export async function researchOfficialSources(
   const warnings: string[] = [];
   const sources: LegalSourceRecord[] = [];
 
-  try {
-    attemptedProviders.push(neuris.name);
-    const legislation = await neuris.searchLegislation(query, { limit: decision.wantsCaseLaw ? 2 : 4 });
-    sources.push(...legislation);
-  } catch (error) {
-    warnings.push(error instanceof Error ? error.message : "NeuRIS war nicht erreichbar.");
+  attemptedProviders.push(neuris.name);
+  for (const searchQuery of buildLegalSearchQueries(query)) {
+    try {
+      const legislation = await neuris.searchLegislation(searchQuery, { limit: decision.wantsCaseLaw ? 2 : 4 });
+      sources.push(...legislation);
+      if (sources.length >= 4) break;
+    } catch (error) {
+      warnings.push(error instanceof Error ? error.message : "NeuRIS war nicht erreichbar.");
+      break;
+    }
   }
 
   if (decision.wantsCaseLaw && sources.length < 4) {
@@ -60,10 +64,11 @@ export async function researchOfficialSources(
     }
   }
 
-  if (/\b(nrw|nordrhein-westfalen|landesrecht)\b/i.test(query) && sources.length < 4) {
+  if (/\b(nrw|nordrhein-westfalen|landesrecht|allgemeines verwaltungsrecht)\b/i.test(query) && sources.length < 4) {
     try {
       attemptedProviders.push(nrw.name);
-      sources.push(...(await nrw.searchLegislation(query)));
+      const nrwQuery = /allgemeines verwaltungsrecht/i.test(query) ? `${query} VwVfG NRW` : query;
+      sources.push(...(await nrw.searchLegislation(nrwQuery)));
     } catch (error) {
       warnings.push(error instanceof Error ? error.message : "RECHT.NRW war nicht erreichbar.");
     }
@@ -76,7 +81,7 @@ export async function researchOfficialSources(
     query,
     sources: deduplicated,
     attemptedProviders,
-    warnings,
+    warnings: [...new Set(warnings)],
     live: deduplicated.some((source) => Boolean(source.verifiedAt)),
   };
   memoryCache.set(cacheKey, {

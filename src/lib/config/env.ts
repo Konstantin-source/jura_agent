@@ -3,10 +3,9 @@ import { z } from "zod";
 const serverEnvironmentSchema = z.object({
   DEMO_MODE: z.enum(["true", "false"]).default("false"),
   OPENAI_API_KEY: z.string().min(1).optional(),
-  OPENAI_PRIMARY_MODEL: z.enum(["gpt-5.6-terra", "gpt-5.6-luna"]).default("gpt-5.6-terra"),
   DATA_DIR: z.string().min(1).default(".data"),
   SETUP_TOKEN: z.string().min(32).max(512).optional(),
-  MONTHLY_AI_BUDGET_EUR: z.coerce.number().positive().default(10),
+  MONTHLY_AI_BUDGET_EUR: z.coerce.number().positive().default(5),
   EUR_PER_USD: z.coerce.number().positive().default(0.92),
   NEURIS_BASE_URL: z
     .string()
@@ -22,7 +21,6 @@ export function getServerEnvironment(): ServerEnvironment {
   return serverEnvironmentSchema.parse({
     DEMO_MODE: process.env.DEMO_MODE,
     OPENAI_API_KEY: process.env.OPENAI_API_KEY || undefined,
-    OPENAI_PRIMARY_MODEL: process.env.OPENAI_PRIMARY_MODEL,
     DATA_DIR: process.env.DATA_DIR,
     SETUP_TOKEN: process.env.SETUP_TOKEN || undefined,
     MONTHLY_AI_BUDGET_EUR: process.env.MONTHLY_AI_BUDGET_EUR,

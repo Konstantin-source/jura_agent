@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { correctionResponseSchema } from "@/lib/ai/schemas";
+import { assistantRequestSchema, correctionResponseSchema, explanationResponseSchema } from "@/lib/ai/schemas";
 
 const validCorrection = {
   mode: "correction" as const,
@@ -40,5 +40,36 @@ describe("correctionResponseSchema", () => {
       estimatedScore: { ...validCorrection.estimatedScore, central: 19 },
     };
     expect(correctionResponseSchema.safeParse(invalid).success).toBe(false);
+  });
+});
+
+describe("concise assistant requests and responses", () => {
+  it("uses the normal model preset when an older client omits it", () => {
+    const request = assistantRequestSchema.parse({
+      mode: "explanation",
+      subject: "Schuldrecht II",
+      query: "Erkläre § 280 BGB.",
+      attachments: [],
+    });
+    expect(request.modelPreset).toBe("normal");
+    expect(assistantRequestSchema.safeParse({ ...request, modelPreset: "beliebiges-modell" }).success).toBe(false);
+  });
+
+  it("caps optional explanation filler", () => {
+    const response = {
+      mode: "explanation" as const,
+      title: "Kurz",
+      shortExplanation: "Antwort",
+      preciseExplanation: "Details",
+      example: "",
+      examRelevance: "",
+      typicalErrors: ["Fehler 1", "Fehler 2", "Fehler 3"],
+      connections: [],
+      nextActions: [],
+      citations: [],
+      sourceStatus: "Nicht aktuell verifiziert" as const,
+      uncertainties: [],
+    };
+    expect(explanationResponseSchema.safeParse(response).success).toBe(false);
   });
 });

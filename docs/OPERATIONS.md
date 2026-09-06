@@ -16,7 +16,7 @@
 
 ## Kosten
 
-Der Standardwert ist ein gemeinsames Monatslimit von 10 Euro. Preise sind versioniert in `src/lib/cost/pricing.ts` hinterlegt und müssen bei einem Modellwechsel gegen die offizielle Preisseite geprüft werden. Bei 80 Prozent meldet die API eine Warnung; bei 100 Prozent antwortet sie mit HTTP 402, bevor ein neuer KI-Lauf startet.
+Der Standardwert ist ein gemeinsames Monatslimit von 5 Euro. Der tatsächlich konfigurierte Wert wird dynamisch in den Einstellungen angezeigt. Preise sind versioniert in `src/lib/cost/pricing.ts` hinterlegt und müssen bei einem Modellwechsel gegen die offizielle Preisseite geprüft werden. Bei 80 Prozent meldet die API eine Warnung; bei 100 Prozent antwortet sie mit HTTP 402, bevor ein neuer KI-Lauf startet.
 
 ## Datenhaltung
 

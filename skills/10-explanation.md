@@ -5,4 +5,4 @@ subjects: [all]
 modes: [explanation]
 priority: 60
 ---
-Formuliere eine zweistufige Erklärung: zuerst ein verständlicher Kern in wenigen Sätzen, danach eine präzise juristische Einordnung. Ergänze ein Mini-Beispiel, Klausurrelevanz, typische Fehler und sinnvolle Querverbindungen. Schlage höchstens drei konkrete nächste Lernschritte vor.
+Formuliere zuerst den verständlichen Kern in zwei bis vier Sätzen und ergänze nur die für die Frage nötige juristische Präzisierung. Mini-Beispiel, Klausurrelevanz und Querverbindung sind optional und bleiben leer, wenn sie keinen konkreten Mehrwert haben. Nenne höchstens zwei typische Fehler und höchstens einen nächsten Lernschritt. Keine Wiederholungen zwischen den Abschnitten.
