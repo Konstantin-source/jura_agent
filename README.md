@@ -11,6 +11,7 @@ Mobile-first Lernassistent für das deutsche Jurastudium. Der MVP unterstützt E
 - kontrollierte amtliche Recherche: NeuRIS, Gesetze-im-Internet und RECHT.NRW
 - Foto-, PDF- und Text-Upload mit mobilen Kamera-Inputs
 - strukturierte OpenAI-Antworten, Quellenvalidierung und Kostenbremse
+- klassischer Chatverlauf mit sichtbaren Rückfragen und serverseitigem Kontext aus den letzten vier Dialogrunden
 - Modellwahl pro Chatlauf: sparsam/normal mit Luna, stärker mit Terra, stark mit Sol
 - genau zwei lokale Konten mit getrennten Lernverläufen und Dokumenten
 - SQLite und Uploads in einem persistenten Docker-Volume – ohne externen Datenbankdienst

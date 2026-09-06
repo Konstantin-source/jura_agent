@@ -5,7 +5,7 @@ import { generateWithOpenAI } from "@/lib/ai/openai";
 import { requireAppUser, AuthenticationError } from "@/lib/auth/server";
 import { getServerEnvironment } from "@/lib/config/env";
 import { calculateRunCostEur, getBudgetState } from "@/lib/cost/pricing";
-import { getMonthlySpendEur, persistInteraction } from "@/lib/data/persistence";
+import { getConversationContext, getMonthlySpendEur, persistInteraction } from "@/lib/data/persistence";
 import { deriveSourceStatus, researchOfficialSources } from "@/lib/legal/composite-provider";
 import { isSameOriginRequest } from "@/lib/security/origin";
 
@@ -49,9 +49,14 @@ export async function POST(request: Request) {
       );
     }
 
-    const research = await researchOfficialSources(`${input.subject}: ${input.query}`, input.mode);
+    const history = input.conversationId ? getConversationContext(user.id, input.conversationId) : [];
+    const previousQuestion = [...history].reverse().find((message) => message.role === "user")?.content ?? "";
+    const research = await researchOfficialSources(
+      `${input.subject}: ${input.query}${previousQuestion ? ` Kontext: ${previousQuestion}` : ""}`,
+      input.mode,
+    );
     const sourceStatus = deriveSourceStatus(research.sources, Boolean(input.attachments?.length));
-    const generated = await generateWithOpenAI(input, research, sourceStatus);
+    const generated = await generateWithOpenAI(input, research, sourceStatus, history);
     const costEur = calculateRunCostEur(generated.model, generated.usage, env.EUR_PER_USD);
     const conversationId = await persistInteraction({
       userId: user.id,

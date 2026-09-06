@@ -34,7 +34,7 @@ const LAW_LABELS: Record<string, string> = {
 
 const SEARCH_STOP_WORDS = new Set([
   "allgemeines", "bitte", "dann", "dass", "deine", "einer", "eines", "erkläre", "frage", "gegen",
-  "ihnen", "kann", "klausur", "meine", "mich", "oder", "prüfe", "recht", "rechtlich", "semester",
+  "ihnen", "kann", "klausur", "kontext", "meine", "mich", "oder", "prüfe", "recht", "rechtlich", "semester",
   "das", "der", "die", "den", "dem", "des", "ein", "eine", "ist", "sind", "studium", "über", "unterschied", "unter", "verstehen", "warum", "welche", "welcher", "welches",
   "und", "was", "wenn", "wird", "womit", "zwischen",
 ]);

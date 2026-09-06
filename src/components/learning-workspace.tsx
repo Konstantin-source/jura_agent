@@ -13,6 +13,7 @@ import {
   LoaderCircle,
   MessageCircleQuestion,
   Paperclip,
+  Plus,
   Send,
   Sparkles,
   X,
@@ -35,6 +36,13 @@ interface ApiResult {
   sources: LegalSourceRecord[];
   conversationId: string;
   meta: { demo: boolean; sourceStatus: string; durationMs: number; costEur: number; model?: string; modelPreset?: ModelPresetId };
+}
+
+interface ChatTurn {
+  id: string;
+  question: string;
+  answer: AssistantResponse;
+  sources: LegalSourceRecord[];
 }
 
 const MODES: Array<{ id: LearningMode; label: string; short: string; icon: typeof Sparkles }> = [
@@ -72,18 +80,26 @@ function readMode(value: string | null): LearningMode {
   return value === "correction" || value === "socratic" ? value : "explanation";
 }
 
-function saveLocalConversation(result: ApiResult, query: string, subject: string, mode: LearningMode) {
+function saveLocalConversation(result: ApiResult, subject: string, mode: LearningMode, turns: ChatTurn[]) {
   if (typeof window === "undefined") return;
   const key = "jura-agent-demo-conversations";
-  const current = JSON.parse(localStorage.getItem(key) ?? "[]") as unknown[];
+  let current: unknown[] = [];
+  try {
+    current = JSON.parse(localStorage.getItem(key) ?? "[]") as unknown[];
+  } catch {
+    current = [];
+  }
+  const latest = turns.at(-1);
+  if (!latest) return;
   const entry = {
     id: result.conversationId,
-    title: query.slice(0, 80),
+    title: turns[0].question.slice(0, 80),
     subject,
     mode,
     updatedAt: new Date().toISOString(),
-    answer: result.answer,
-    sources: result.sources,
+    answer: latest.answer,
+    sources: latest.sources,
+    turns,
   };
   localStorage.setItem(key, JSON.stringify([entry, ...current.filter((item) => (item as { id?: string }).id !== entry.id)].slice(0, 30)));
 }
@@ -95,7 +111,9 @@ export function LearningWorkspace() {
   const [subject, setSubject] = useState(searchParams.get("subject") || "Allgemeines Verwaltungsrecht");
   const [query, setQuery] = useState(searchParams.get("prompt") || "");
   const [attachments, setAttachments] = useState<Attachment[]>([]);
-  const [result, setResult] = useState<ApiResult | null>(null);
+  const [turns, setTurns] = useState<ChatTurn[]>([]);
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [pendingQuestion, setPendingQuestion] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -143,6 +161,8 @@ export function LearningWorkspace() {
     if (!effectiveQuery) return;
     setBusy(true);
     setError(null);
+    setPendingQuestion(effectiveQuery);
+    setQuery("");
     try {
       const response = await fetch("/api/assistant", {
         method: "POST",
@@ -151,28 +171,51 @@ export function LearningWorkspace() {
           mode,
           subject,
           query: effectiveQuery,
-          conversationId: result?.conversationId ?? null,
+          conversationId,
           attachments,
           modelPreset,
         }),
       });
       const payload = (await response.json()) as ApiResult & { error?: string };
       if (!response.ok || !payload.answer) throw new Error(payload.error ?? "Antwort konnte nicht erstellt werden.");
-      setResult(payload);
-      saveLocalConversation(payload, effectiveQuery, subject, mode);
-      window.setTimeout(() => document.getElementById("assistant-result")?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
+      const nextTurn: ChatTurn = {
+        id: crypto.randomUUID(),
+        question: effectiveQuery,
+        answer: payload.answer,
+        sources: payload.sources,
+      };
+      const nextTurns = [...turns, nextTurn];
+      setTurns(nextTurns);
+      setConversationId(payload.conversationId);
+      saveLocalConversation(payload, subject, mode, nextTurns);
+      window.setTimeout(() => document.getElementById("chat-end")?.scrollIntoView({ behavior: "smooth", block: "end" }), 60);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Antwort fehlgeschlagen.");
+      setQuery(effectiveQuery);
     } finally {
+      setPendingQuestion(null);
       setBusy(false);
     }
   }
 
   function switchMode(nextMode: LearningMode) {
     setMode(nextMode);
-    setResult(null);
+    setTurns([]);
+    setConversationId(null);
+    setPendingQuestion(null);
     setError(null);
     if (!query || STARTERS[mode].includes(query)) setQuery("");
+  }
+
+  function startNewChat() {
+    setTurns([]);
+    setConversationId(null);
+    setPendingQuestion(null);
+    setQuery("");
+    setAttachments([]);
+    setError(null);
+    setUploadNote(null);
+    window.setTimeout(() => composerRef.current?.focus(), 0);
   }
 
   return (
@@ -183,12 +226,13 @@ export function LearningWorkspace() {
           <span className={`workspace-mode-icon ${mode}`}><activeMode.icon size={20} /></span>
           <div><p>{activeMode.label}</p><h1>{mode === "correction" ? "Deine Klausur im Blick" : mode === "socratic" ? "Gemeinsam zur Lösung" : "Frag, bis es wirklich sitzt"}</h1></div>
         </div>
+        {turns.length > 0 && <button type="button" className="new-chat-button" onClick={startNewChat} disabled={busy}><Plus size={16} /><span>Neuer Chat</span></button>}
         {runtime.mode === "demo" && <span className="demo-pill">Demo</span>}
       </header>
 
       <div className="mode-tabs" role="tablist" aria-label="Lernmodus">
         {MODES.map(({ id, short, icon: Icon }) => (
-          <button key={id} type="button" role="tab" aria-selected={mode === id} className={mode === id ? "is-active" : ""} onClick={() => switchMode(id)}>
+          <button key={id} type="button" role="tab" aria-selected={mode === id} className={mode === id ? "is-active" : ""} disabled={busy} onClick={() => switchMode(id)}>
             <Icon size={17} /> <span>{short}</span>
           </button>
         ))}
@@ -196,7 +240,7 @@ export function LearningWorkspace() {
 
       <div className="workspace-body">
         <section className="conversation-panel">
-          {!result ? (
+          {turns.length === 0 && !pendingQuestion ? (
             <div className="workspace-empty">
               <span className={`empty-illustration ${mode}`}><activeMode.icon size={31} /></span>
               <p className="section-kicker">{activeMode.label}</p>
@@ -212,8 +256,22 @@ export function LearningWorkspace() {
             </div>
           ) : (
             <div id="assistant-result" className="result-wrap">
-              {result.meta.demo && <div className="demo-banner"><Check size={16} /><span><strong>Demoantwort</strong> · Ablauf und Darstellung sind echt, KI und Quellenabruf sind simuliert.</span></div>}
-              <AssistantAnswerView answer={result.answer} sources={result.sources} />
+              {runtime.mode === "demo" && <div className="demo-banner"><Check size={16} /><span><strong>Demoantwort</strong> · Ablauf und Darstellung sind echt, KI und Quellenabruf sind simuliert.</span></div>}
+              <div className="chat-thread" aria-label="Chatverlauf">
+                {turns.map((turn) => (
+                  <div className="chat-turn" key={turn.id}>
+                    <div className="user-message"><span>Du</span><p>{turn.question}</p></div>
+                    <AssistantAnswerView answer={turn.answer} sources={turn.sources} />
+                  </div>
+                ))}
+                {pendingQuestion && (
+                  <div className="chat-turn pending-turn">
+                    <div className="user-message"><span>Du</span><p>{pendingQuestion}</p></div>
+                    <div className="assistant-typing" role="status"><LoaderCircle className="spin" size={17} /><span>Antwort wird erstellt …</span></div>
+                  </div>
+                )}
+                <div id="chat-end" />
+              </div>
             </div>
           )}
         </section>
@@ -222,7 +280,7 @@ export function LearningWorkspace() {
           <div className="context-card">
             <p className="section-kicker">Fach</p>
             <label htmlFor="subject" className="sr-only">Fach auswählen</label>
-            <select id="subject" value={subject} onChange={(event) => setSubject(event.target.value)}>
+            <select id="subject" value={subject} disabled={turns.length > 0 || busy} title={turns.length > 0 ? "Für ein anderes Fach bitte einen neuen Chat starten." : undefined} onChange={(event) => setSubject(event.target.value)}>
               {SUBJECTS.map((item) => <option key={item}>{item}</option>)}
             </select>
           </div>
@@ -255,7 +313,7 @@ export function LearningWorkspace() {
             </div>
           )}
           <div className="composer-input-row">
-            <textarea ref={composerRef} rows={1} value={query} onChange={(event) => setQuery(event.target.value)} placeholder={mode === "correction" ? "Was soll ich besonders prüfen?" : "Stell deine juristische Frage …"} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); event.currentTarget.form?.requestSubmit(); } }} />
+            <textarea ref={composerRef} rows={1} value={query} disabled={busy} onChange={(event) => setQuery(event.target.value)} placeholder={mode === "correction" ? "Was soll ich besonders prüfen?" : "Stell deine juristische Frage …"} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); event.currentTarget.form?.requestSubmit(); } }} />
             <button className="send-button" type="submit" disabled={busy || (!query.trim() && !(mode === "correction" && attachments.length))} aria-label="Absenden">
               {busy ? <LoaderCircle className="spin" size={20} /> : <Send size={19} />}
             </button>
@@ -268,6 +326,7 @@ export function LearningWorkspace() {
               <select
                 aria-label="Modellstärke"
                 value={modelPreset}
+                disabled={busy}
                 onChange={(event) => {
                   const next = event.target.value as ModelPresetId;
                   setModelPreset(next);

@@ -29,7 +29,8 @@ describe("NeurisProvider", () => {
     const provider = new NeurisProvider();
     const [result] = await provider.searchLegislation("Beispiel", { limit: 1 });
     expect(result.provider).toBe("NeuRIS");
-    expect(result.url).toContain("/norms/eli/bund/");
+    expect(result.url).toBe("https://testphase.rechtsinformationen.bund.de/norms/eli/bund/bgbl-1/2020/s1/2026-01-01/1/deu");
+    expect(result.url).not.toContain("regelungstext-1.html");
     expect(result.excerpt).toContain("§ 1");
     expect(result.verifiedAt).not.toBeNull();
   });
@@ -43,6 +44,20 @@ describe("NeurisProvider", () => {
     );
     await expect(checkNeurisConnection("https://testphase.rechtsinformationen.bund.de/v1", { force: true }))
       .resolves.toMatchObject({ reachable: true, message: "Live-Abruf erfolgreich" });
+  });
+
+  it("maps case-law API IDs to the public reader", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({
+          member: [{ item: { headline: "Beispielbeschluss", "@id": "/v1/case-law/ecli/de/bverwg/2026/010126" } }],
+        }), { status: 200, headers: { "Content-Type": "application/json" } }),
+      ),
+    );
+    const provider = new NeurisProvider();
+    const [result] = await provider.searchCaseLaw("Beispiel", { limit: 1 });
+    expect(result.url).toBe("https://testphase.rechtsinformationen.bund.de/case-law/ecli/de/bverwg/2026/010126");
   });
 
   it("does not mistake a configured URL for a working integration", async () => {

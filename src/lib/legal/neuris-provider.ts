@@ -49,7 +49,10 @@ function toHumanUrl(apiUrl: string, kind: "legislation" | "case-law"): string {
   const url = new URL(apiUrl);
   if (kind === "legislation" && url.pathname.startsWith("/v1/legislation/")) {
     const normPath = url.pathname.replace("/v1/legislation/", "/norms/");
-    return `${url.origin}${normPath}/regelungstext-1.html`;
+    return `${url.origin}${normPath}`;
+  }
+  if (kind === "case-law" && url.pathname.startsWith("/v1/case-law/")) {
+    return `${url.origin}${url.pathname.replace("/v1/case-law/", "/case-law/")}`;
   }
   return apiUrl;
 }

@@ -16,6 +16,14 @@ interface SavedConversation {
   updatedAt: string;
   answer?: AssistantResponse;
   sources?: LegalSourceRecord[];
+  turns?: SavedTurn[];
+}
+
+interface SavedTurn {
+  id: string;
+  question: string;
+  answer: AssistantResponse;
+  sources: LegalSourceRecord[];
 }
 
 const modeLabel: Record<LearningMode, string> = {
@@ -49,18 +57,35 @@ export function ChatLibrary() {
   }, [runtime.mode]);
 
   async function openConversation(item: SavedConversation) {
-    if (item.answer && item.sources) {
+    if (item.turns?.length || (item.answer && item.sources)) {
       setSelected(item);
       return;
     }
     try {
       const response = await fetch(`/api/conversations/${item.id}`);
       const payload = (await response.json()) as {
-        messages?: Array<{ role: string; content: { answer?: AssistantResponse; sources?: LegalSourceRecord[] } }>;
+        messages?: Array<{
+          id: string;
+          role: string;
+          content: { text?: string; answer?: AssistantResponse; sources?: LegalSourceRecord[] };
+        }>;
       };
-      const assistant = [...(payload.messages ?? [])].reverse().find((message) => message.role === "assistant");
-      if (assistant?.content.answer) {
-        setSelected({ ...item, answer: assistant.content.answer, sources: assistant.content.sources ?? [] });
+      const turns: SavedTurn[] = [];
+      let currentQuestion = item.title;
+      for (const message of payload.messages ?? []) {
+        if (message.role === "user" && message.content.text) currentQuestion = message.content.text;
+        if (message.role === "assistant" && message.content.answer) {
+          turns.push({
+            id: message.id,
+            question: currentQuestion,
+            answer: message.content.answer,
+            sources: message.content.sources ?? [],
+          });
+        }
+      }
+      const latest = turns.at(-1);
+      if (latest) {
+        setSelected({ ...item, turns, answer: latest.answer, sources: latest.sources });
       }
     } catch {
       // Keep the list usable if a single historic record cannot be opened.
@@ -74,7 +99,16 @@ export function ChatLibrary() {
       <div className="page chat-detail-page">
         <button className="back-text-button" type="button" onClick={() => setSelected(null)}>← Alle Chats</button>
         <div className="chat-detail-heading"><p>{selected.subject} · {modeLabel[selected.mode]}</p><h1>{selected.title}</h1></div>
-        {selected.answer && <AssistantAnswerView answer={selected.answer} sources={selected.sources ?? []} />}
+        {selected.turns?.length ? (
+          <div className="chat-thread" aria-label="Gespeicherter Chatverlauf">
+            {selected.turns.map((turn) => (
+              <div className="chat-turn" key={turn.id}>
+                <div className="user-message"><span>Du</span><p>{turn.question}</p></div>
+                <AssistantAnswerView answer={turn.answer} sources={turn.sources} />
+              </div>
+            ))}
+          </div>
+        ) : selected.answer && <AssistantAnswerView answer={selected.answer} sources={selected.sources ?? []} />}
       </div>
     );
   }
