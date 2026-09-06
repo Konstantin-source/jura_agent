@@ -11,10 +11,9 @@ permissions:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     env:
       DEMO_MODE: "true"
-      NEXT_PUBLIC_DEMO_MODE: "true"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -26,7 +25,34 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+      - run: npm run test:storage-smoke
+      - name: Install browser for end-to-end tests
+        run: npx playwright install --with-deps chromium
+      - name: Run desktop and mobile end-to-end tests
+        env:
+          PLAYWRIGHT_SERVER_COMMAND: npm run start -- --hostname 127.0.0.1
+        run: npm run test:e2e
       - name: Validate Portainer stack
         run: docker compose -f docker-compose.portainer.yml config --quiet
       - name: Build production container
         run: docker build --tag jura-agent:ci .
+      - name: Verify writable persistent volume
+        run: |
+          trap 'docker rm --force jura-agent-ci >/dev/null 2>&1 || true; docker volume rm jura-agent-ci-data >/dev/null 2>&1 || true' EXIT
+          docker volume create jura-agent-ci-data
+          docker run --detach --name jura-agent-ci \
+            --env DEMO_MODE=false \
+            --env DATA_DIR=/data \
+            --env SETUP_TOKEN=ci-setup-token-with-at-least-32-characters \
+            --env APP_URL=http://127.0.0.1:3010 \
+            --publish 3010:3000 \
+            --volume jura-agent-ci-data:/data \
+            jura-agent:ci
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:3010/api/health | grep --quiet '"localDatabase":true'; then
+              exit 0
+            fi
+            sleep 1
+          done
+          docker logs jura-agent-ci
+          exit 1

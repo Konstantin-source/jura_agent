@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 test("dashboard exposes the three core modes", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "Was möchtest du heute lernen?" })).toBeVisible();
-    await expect(page.locator(".demo-pill:visible").first()).toBeVisible();
+  await expect(page.locator(".demo-pill:visible").first()).toBeVisible();
   await expect(page.getByText("Etwas verstehen", { exact: true })).toBeVisible();
   await expect(page.getByText("Klausur korrigieren", { exact: true })).toBeVisible();
   await expect(page.getByText("Gemeinsam lernen", { exact: true })).toBeVisible();

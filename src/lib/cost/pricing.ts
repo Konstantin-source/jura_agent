@@ -31,7 +31,8 @@ export function calculateRunCostEur(
   usage: TokenUsage,
   eurPerUsd: number,
 ): number {
-  const price = MODEL_PRICES.find((entry) => model.startsWith(entry.model)) ?? MODEL_PRICES[0];
+  const price = MODEL_PRICES.find((entry) => model === entry.model || model.startsWith(`${entry.model}-`));
+  if (!price) throw new Error(`Für das Modell ${model} ist keine geprüfte Preisangabe hinterlegt.`);
   const inputUsd = (usage.inputTokens / 1_000_000) * price.inputUsdPerMillion;
   const outputUsd = (usage.outputTokens / 1_000_000) * price.outputUsdPerMillion;
   return Number(((inputUsd + outputUsd) * eurPerUsd).toFixed(6));

@@ -10,10 +10,12 @@
 /test-results/
 /playwright-report/
 
-# local environment
-.env
-.env.local
-.env.*.local
+# local environment and persistent application data
+.env*
+!.env.example
+!.env.portainer.example
+/.data/
+/data/
 
 # misc
 .DS_Store

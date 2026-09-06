@@ -6,22 +6,41 @@ type RuntimeMode = "loading" | "demo" | "live";
 
 interface RuntimeConfig {
   mode: RuntimeMode;
-  supabase: { url: string; anonKey: string } | null;
+  storage: "local";
+  setupRequired: boolean;
+  setupAvailable: boolean;
 }
 
-const RuntimeContext = createContext<RuntimeConfig>({ mode: "loading", supabase: null });
+const RuntimeContext = createContext<RuntimeConfig>({
+  mode: "loading",
+  storage: "local",
+  setupRequired: false,
+  setupAvailable: false,
+});
 
 export function RuntimeProvider({ children }: { children: React.ReactNode }) {
-  const [config, setConfig] = useState<RuntimeConfig>({ mode: "loading", supabase: null });
+  const [config, setConfig] = useState<RuntimeConfig>({
+    mode: "loading",
+    storage: "local",
+    setupRequired: false,
+    setupAvailable: false,
+  });
   useEffect(() => {
     const controller = new AbortController();
     fetch("/api/config", { cache: "no-store", signal: controller.signal })
       .then((response) => response.json())
-      .then((value: { mode?: "demo" | "live"; supabase?: { url: string; anonKey: string } | null }) => {
-        setConfig({ mode: value.mode ?? "live", supabase: value.supabase ?? null });
+      .then((value: Partial<Omit<RuntimeConfig, "mode">> & { mode?: "demo" | "live" }) => {
+        setConfig({
+          mode: value.mode ?? "live",
+          storage: "local",
+          setupRequired: value.setupRequired ?? false,
+          setupAvailable: value.setupAvailable ?? false,
+        });
       })
       .catch(() => {
-        if (!controller.signal.aborted) setConfig({ mode: "live", supabase: null });
+        if (!controller.signal.aborted) {
+          setConfig({ mode: "live", storage: "local", setupRequired: false, setupAvailable: false });
+        }
       });
     return () => controller.abort();
   }, []);

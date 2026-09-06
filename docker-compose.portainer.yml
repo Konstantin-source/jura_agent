@@ -23,10 +23,8 @@ services:
       DEMO_MODE: ${DEMO_MODE:-false}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OPENAI_PRIMARY_MODEL: ${OPENAI_PRIMARY_MODEL:-gpt-5.6-terra}
-      SUPABASE_URL: ${SUPABASE_URL:-}
-      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-}
-      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
-      ALLOWED_EMAILS: ${ALLOWED_EMAILS:-}
+      DATA_DIR: /data
+      SETUP_TOKEN: ${SETUP_TOKEN:-}
       MONTHLY_AI_BUDGET_EUR: ${MONTHLY_AI_BUDGET_EUR:-10}
       EUR_PER_USD: ${EUR_PER_USD:-0.92}
       NEURIS_BASE_URL: ${NEURIS_BASE_URL:-https://testphase.rechtsinformationen.bund.de/v1}
@@ -34,8 +32,14 @@ services:
       APP_URL: ${APP_URL:-http://jura-agent:3000}
     expose:
       - "3000"
+    volumes:
+      - jura-agent-data:/data
     networks:
       - web-services
+
+volumes:
+  jura-agent-data:
+    name: ${JURA_AGENT_DATA_VOLUME:-jura-agent-data}
 
 networks:
   web-services:

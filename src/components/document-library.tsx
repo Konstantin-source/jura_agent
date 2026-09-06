@@ -106,7 +106,7 @@ export function DocumentLibrary() {
       {error && <p className="form-error standalone" role="alert">{error}</p>}
       {note && <p className="form-note standalone">{note}</p>}
 
-      <div className="privacy-strip"><ShieldCheck size={18} /><p><strong>Privater Bereich.</strong> Im Live-Betrieb liegen Originaldateien im privaten Supabase-Bucket. Temporär an OpenAI übermittelte PDFs werden nach der Extraktion gelöscht.</p></div>
+      <div className="privacy-strip"><ShieldCheck size={18} /><p><strong>Privater Bereich.</strong> Im Live-Betrieb liegen Originaldateien im persistenten Docker-Volume und sind nur über das jeweilige Konto zugänglich. Temporär an OpenAI übermittelte PDFs werden nach der Extraktion gelöscht.</p></div>
 
       <section className="document-section">
         <div className="section-title-row"><div><p className="section-kicker">Ablage</p><h2>Meine Dokumente</h2></div><span className="count-pill">{documents.length}</span></div>

@@ -19,7 +19,7 @@ export default defineConfig({
   webServer: {
     command:
       process.env.PLAYWRIGHT_SERVER_COMMAND ??
-      "DEMO_MODE=true NEXT_PUBLIC_DEMO_MODE=true npm run dev -- --hostname 127.0.0.1",
+      "DEMO_MODE=true npm run dev -- --hostname 127.0.0.1",
     url: "http://127.0.0.1:3000/api/health",
     reuseExistingServer: !process.env.CI,
   },
