@@ -34,7 +34,7 @@ flowchart TD
 3. Bei einer Folgefrage werden die letzten acht Nachrichten des eigenen Chats serverseitig geladen. Der Browser kann keinen fremden Verlauf einschleusen.
 4. Bei Klausurkorrekturen werden die aus den Unterlagen extrahierten Normverweise in die amtliche Recherche übernommen. Dadurch sucht NeuRIS nach den tatsächlich geprüften Vorschriften statt nach einem generischen Korrekturauftrag.
 5. Jede juristische Lernfrage löst eine kontrollierte amtliche Recherche aus; natürliche Fragen werden dafür in fokussierte Suchbegriffe zerlegt. Der interne Provider bildet den NeuRIS-Ablauf aus Suche und amtlichen Dokumenttreffern nach, ohne dem Modell freien Netzwerkzugriff zu geben.
-6. Der Composite Provider fragt höchstens drei externe Quellenwege ab und gibt strukturierte Quellenobjekte zurück.
+6. Der Composite Provider fragt höchstens drei externe Quellenwege ab und gibt strukturierte Quellenobjekte zurück. Bei Korrekturen werden bis zu drei konkrete NeuRIS-Treffer zusätzlich über ihren Dokument-Endpunkt vertieft; bei 403 oder fehlendem Detailtext bleibt der Suchauszug erhalten.
 7. Fach-, Methoden- und Modus-Skills werden deterministisch aus `skills/*.md` aufgelöst. Der Korrektur-Skill erzwingt Materialtrennung, interne Referenzlösung, Soll-Ist-Vergleich und eine dokumentierte Bewertungsbasis.
 8. OpenAI erhält den begrenzten Chatkontext und bis zu 180.000 Zeichen klar markierter, nicht vertrauenswürdiger Dokumente. Es liefert über Structured Outputs genau eines der drei Schemas. `store: false` verhindert API-seitige Response-Speicherung.
 9. Der Citation Validator verwirft nicht belegte Quellen-IDs. Eine reine studentische Bearbeitung zählt nicht als stützende Kursunterlage.

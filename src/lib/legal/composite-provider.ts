@@ -76,9 +76,28 @@ export async function researchOfficialSources(
     }
   }
 
-  const deduplicated = sources.filter(
+  let deduplicated = sources.filter(
     (source, index, all) => index === all.findIndex((candidate) => candidate.url === source.url),
   ).slice(0, 6);
+  if (mode === "correction") {
+    deduplicated = await Promise.all(deduplicated.map(async (source, index) => {
+      const apiUrl = source.metadata.apiUrl;
+      if (index >= 3 || source.provider !== "NeuRIS" || typeof apiUrl !== "string") return source;
+      try {
+        const details = await neuris.getDocument(apiUrl);
+        if (!details?.excerpt) return source;
+        return {
+          ...source,
+          excerpt: [source.excerpt, details.excerpt].filter(Boolean).join("\n\n").slice(0, 6_000),
+          validFrom: details.validFrom ?? source.validFrom,
+          metadata: { ...source.metadata, detailsFetched: true },
+        };
+      } catch (error) {
+        warnings.push(error instanceof Error ? `NeuRIS-Detailabruf: ${error.message}` : "NeuRIS-Detailabruf war nicht möglich.");
+        return source;
+      }
+    }));
+  }
   const result: LegalResearchResult = {
     query,
     sources: deduplicated,
