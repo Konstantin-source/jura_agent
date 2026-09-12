@@ -10,10 +10,9 @@ test("dashboard exposes the three core modes", async ({ page }) => {
 });
 
 test("creates a transparent structured demo explanation", async ({ page }) => {
-  await page.goto("/lernen?mode=explanation");
+  await page.goto("/lernen?mode=explanation&subject=Schuldrecht%20II");
   const prompt = page.getByRole("textbox");
   const modelSelect = page.getByRole("combobox", { name: "Modellstärke" });
-  await page.getByLabel("Fach auswählen").selectOption("Schuldrecht II");
   await expect(modelSelect).toHaveValue("normal");
   await expect(modelSelect.locator("option")).toHaveCount(4);
   await modelSelect.selectOption("advanced");
