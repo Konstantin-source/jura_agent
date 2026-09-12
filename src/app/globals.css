@@ -333,7 +333,9 @@ button { color: inherit; }
 .composer-privacy { margin-left: auto; color: #999eaa; font-size: 9px; }
 .uploading-label { display: inline-flex; align-items: center; gap: 5px; color: var(--green); font-size: 10px; }
 .composer-attachments { display: flex; gap: 5px; overflow-x: auto; padding: 1px 2px 5px; }
-.composer-attachments > span { display: inline-flex; align-items: center; gap: 5px; max-width: 190px; flex: 0 0 auto; padding: 4px 7px; border-radius: 8px; background: var(--blue-soft); color: var(--blue-dark); font-size: 9px; white-space: nowrap; }
+.composer-attachments > span { display: inline-flex; align-items: center; gap: 5px; max-width: 280px; flex: 0 0 auto; padding: 4px 7px; border-radius: 8px; background: var(--blue-soft); color: var(--blue-dark); font-size: 9px; white-space: nowrap; }
+.composer-attachment-name { max-width: 95px; overflow: hidden; text-overflow: ellipsis; }
+.composer-attachment select { max-width: 125px; border: 0; background: transparent; color: var(--blue-dark); font-size: 9px; font-weight: 750; }
 .composer-attachments button { display: grid; place-items: center; padding: 0; border: 0; background: transparent; cursor: pointer; }
 .form-error, .form-note { margin: 7px 4px 1px; padding: 7px 9px; border-radius: 8px; font-size: 10px; line-height: 1.35; }
 .form-error { background: var(--danger-soft); color: var(--danger); }
@@ -375,6 +377,8 @@ button { color: inherit; }
 .formatted-text > p + p { margin-top: 10px; }
 .formatted-numbered-list { display: grid; gap: 9px; margin: 10px 0 0; padding-left: 22px; color: var(--muted-strong); font-size: 15px; line-height: 1.65; }
 .formatted-numbered-list li { padding-left: 3px; }
+.formatted-numbered-list li::marker { color: var(--blue); font-weight: 800; }
+.formatted-numbered-list + p { margin-top: 12px; }
 .formatted-text code, .answer-lead code { padding: 1px 4px; border-radius: 4px; background: var(--paper-deep); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .9em; }
 .answer-two-column { display: grid; gap: 10px; margin-top: 20px; }
 .answer-callout { padding: 15px; border: 1px solid var(--line-soft); border-radius: 14px; }
@@ -653,7 +657,8 @@ button { color: inherit; }
   .context-note p { margin: 5px 0 0; color: #496d62; font-size: 9px; }
   .attachment-list { display: grid; gap: 6px; }
   .attachment-list > div { display: grid; grid-template-columns: auto minmax(0,1fr) auto; align-items: center; gap: 6px; padding: 7px; border-radius: 8px; background: var(--surface); color: var(--blue); }
-  .attachment-list span { overflow: hidden; color: var(--muted-strong); font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
+.attachment-list span { overflow: hidden; color: var(--muted-strong); font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
+.attachment-list span small { display: block; margin-top: 2px; color: var(--blue); font-size: 7px; }
   .attachment-list button { padding: 0; border: 0; background: transparent; cursor: pointer; color: var(--muted); }
   .workspace-empty { min-height: calc(100vh - 145px); }
   .composer-dock { left: 248px; bottom: 0; padding: 13px 305px 20px 28px; }

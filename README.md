@@ -9,7 +9,8 @@ Mobile-first Lernassistent für das deutsche Jurastudium. Der MVP unterstützt E
 - drei Lernmodi: **Verstehen**, **Klausur korrigieren**, **Gemeinsam lernen**
 - Schwerpunktpakete Schuldrecht II / vertragliche Schuldverhältnisse und Allgemeines Verwaltungsrecht / VwGO / NRW
 - kontrollierte amtliche Recherche: NeuRIS, Gesetze-im-Internet und RECHT.NRW
-- Foto-, PDF- und Text-Upload mit mobilen Kamera-Inputs
+- Foto-, PDF- und Text-Upload mit mobilen Kamera-Inputs, Dokumentrollen und serverseitig gebundenem OCR-Text
+- evidenzbasierte Klausurkorrektur: Bearbeitung, Sachverhalt, Bearbeitervermerk, Lösungsskizze und Punkteschema werden getrennt gewichtet
 - strukturierte OpenAI-Antworten, Quellenvalidierung und Kostenbremse
 - klassischer Chatverlauf mit sichtbaren Rückfragen und serverseitigem Kontext aus den letzten vier Dialogrunden
 - Modellwahl pro Chatlauf: sparsam/normal mit Luna, stärker mit Terra, stark mit Sol
@@ -53,6 +54,8 @@ Nach dem ersten Deployment:
 1. `https://DEINE-DOMAIN/setup` öffnen und mit dem `SETUP_TOKEN` beide Konten anlegen.
 2. `SETUP_TOKEN` anschließend aus Portainer entfernen und den Stack neu deployen.
 3. Das Volume `jura-agent-data` regelmäßig sichern; ein Redeploy darf es nicht löschen.
+
+Beim ersten Start dieser Version wird die lokale Datenbank automatisch von Schema-Version 1 auf 2 erweitert. Bestehende Dokumente und Chats bleiben erhalten; ältere Dokumente erhalten zunächst die neutrale Rolle „sonstige Unterlage“.
 
 Weitere Details stehen in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/OPERATIONS.md](docs/OPERATIONS.md) und [docs/PORTAINER.md](docs/PORTAINER.md).
 

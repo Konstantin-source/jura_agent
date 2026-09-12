@@ -3,10 +3,16 @@ import "server-only";
 import { mkdir, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { DatabaseSync } from "node:sqlite";
-import type { AssistantRequest, AssistantResponse, ConversationContextMessage } from "@/lib/ai/schemas";
+import type {
+  AssistantRequest,
+  AssistantResponse,
+  AttachmentReference,
+  ConversationContextMessage,
+} from "@/lib/ai/schemas";
 import type { GeneratedAssistantResponse } from "@/lib/ai/openai";
 import { getDatabase, resolveStoredFile, withImmediateTransaction } from "@/lib/db/database";
 import type { LegalSourceRecord } from "@/lib/legal/types";
+import type { DocumentType } from "@/lib/documents/types";
 
 function parseJson<T>(value: string, fallback: T): T {
   try {
@@ -217,11 +223,56 @@ export function getConversationContext(
   });
 }
 
+export function getOwnedAttachmentReferences(
+  userId: string,
+  attachments: AttachmentReference[],
+  db: DatabaseSync = getDatabase(),
+): AttachmentReference[] {
+  const seen = new Set<string>();
+  return attachments.map((attachment) => {
+    if (seen.has(attachment.id)) throw new Error(`Die Unterlage „${attachment.name}“ wurde doppelt übermittelt.`);
+    seen.add(attachment.id);
+
+    const row = db.prepare(`
+      SELECT id, filename, mime_type, extracted_text, page_count, document_type,
+             legibility, extraction_warnings_json
+      FROM documents
+      WHERE id = ? AND user_id = ? AND extraction_status = 'completed'
+    `).get(attachment.id, userId) as {
+      id: string;
+      filename: string;
+      mime_type: string;
+      extracted_text: string;
+      page_count: number | null;
+      document_type: DocumentType;
+      legibility: "gut" | "teilweise" | "schlecht" | null;
+      extraction_warnings_json: string;
+    } | undefined;
+
+    if (!row) throw new Error(`Die Unterlage „${attachment.name}“ wurde nicht gefunden oder gehört nicht zu diesem Konto.`);
+    return {
+      id: row.id,
+      name: row.filename,
+      mimeType: row.mime_type,
+      extractedText: row.extracted_text,
+      documentType: attachment.documentType ?? row.document_type,
+      pageCount: row.page_count,
+      legibility: row.legibility,
+      warnings: parseJson<string[]>(row.extraction_warnings_json, []),
+    };
+  });
+}
+
 export async function persistDocument(
   userId: string,
   file: File,
   extractedText: string,
   pageCount: number | null,
+  metadata: {
+    documentType: DocumentType;
+    legibility?: "gut" | "teilweise" | "schlecht" | null;
+    warnings?: string[];
+  },
 ) {
   const id = crypto.randomUUID();
   const originalName = file.name.replace(/[\u0000-\u001f\u007f]/g, "").slice(0, 255) || "dokument";
@@ -236,8 +287,9 @@ export async function persistDocument(
     getDatabase().prepare(`
       INSERT INTO documents (
         id, user_id, filename, mime_type, size_bytes, storage_path, page_count,
-        extraction_status, extracted_text, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, 'completed', ?, ?, ?)
+        extraction_status, extracted_text, document_type, legibility,
+        extraction_warnings_json, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, 'completed', ?, ?, ?, ?, ?, ?)
     `).run(
       id,
       userId,
@@ -247,6 +299,9 @@ export async function persistDocument(
       relativePath,
       pageCount,
       extractedText,
+      metadata.documentType,
+      metadata.legibility ?? null,
+      JSON.stringify(metadata.warnings ?? []),
       now,
       now,
     );

@@ -4,6 +4,7 @@ import {
   BookOpenCheck,
   CheckCircle2,
   CircleHelp,
+  FileCheck2,
   Lightbulb,
   Link2,
   ListChecks,
@@ -170,6 +171,12 @@ function CorrectionAnswer({ answer, sources }: { answer: Extract<AssistantRespon
         <div><p>Klausurkorrektur</p><h2>Deine Auswertung</h2></div>
         <StatusBadge status={answer.sourceStatus} compact />
       </header>
+      {answer.detectedMaterials.length > 0 && (
+        <section className="answer-block material-overview">
+          <div className="answer-section-title"><FileCheck2 size={18} /><h3>Geprüfte Unterlagen</h3></div>
+          <BulletList items={answer.detectedMaterials} />
+        </section>
+      )}
       <div className="grade-card">
         <ScoreRing score={answer.estimatedScore.central} />
         <div className="grade-copy">
@@ -208,6 +215,12 @@ function CorrectionAnswer({ answer, sources }: { answer: Extract<AssistantRespon
               </div>
             ))}
           </div>
+        </section>
+      )}
+      {answer.improvedExamples.length > 0 && (
+        <section className="answer-block">
+          <div className="answer-section-title"><Sparkles size={18} /><h3>Besser formuliert</h3></div>
+          <BulletList items={answer.improvedExamples} tone="success" />
         </section>
       )}
       <section className="next-steps">

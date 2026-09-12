@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { estimatePdfPageCount } from "@/lib/documents/extract";
-import { MAX_FILE_BYTES, validateUpload, wrapUntrustedDocumentText } from "@/lib/documents/policy";
+import { inferDocumentType, MAX_FILE_BYTES, validateUpload, wrapUntrustedDocumentText } from "@/lib/documents/policy";
 
 describe("document policy", () => {
   it("rejects unsupported and oversized uploads", () => {
@@ -17,5 +17,12 @@ describe("document policy", () => {
   it("estimates pages without counting the Pages tree", () => {
     const bytes = new TextEncoder().encode("/Type /Pages /Kids [] /Type /Page /Type /Page ");
     expect(estimatePdfPageCount(bytes)).toBe(2);
+  });
+
+  it("classifies common correction material filenames", () => {
+    expect(inferDocumentType("Meine Bearbeitung.pdf")).toBe("bearbeitung");
+    expect(inferDocumentType("Sachverhalt Schuldrecht.txt")).toBe("sachverhalt");
+    expect(inferDocumentType("Lösungsskizze.pdf")).toBe("lösungsskizze");
+    expect(inferDocumentType("Klausur.pdf")).toBe("kombiniertes-klausurdokument");
   });
 });

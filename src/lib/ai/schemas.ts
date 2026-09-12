@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { DEFAULT_MODEL_PRESET, MODEL_PRESET_IDS } from "@/lib/ai/models";
+import { DOCUMENT_TYPES } from "@/lib/documents/types";
 
 export const learningModeSchema = z.enum(["explanation", "socratic", "correction"]);
 export type LearningMode = z.infer<typeof learningModeSchema>;
@@ -63,23 +64,23 @@ const scoreSchema = z
     min: z.number().min(0).max(18),
     max: z.number().min(0).max(18),
     confidence: z.enum(["niedrig", "mittel", "hoch"]),
-    basis: z.string(),
-    assumptions: z.array(z.string()),
+    basis: z.string().max(700),
+    assumptions: z.array(z.string().max(300)).max(4),
   })
   .strict();
 
 const rubricItemSchema = z
   .object({
-    criterion: z.string(),
-    weight: z.string(),
-    assessment: z.string(),
+    criterion: z.string().max(120),
+    weight: z.string().max(80),
+    assessment: z.string().max(600),
   })
   .strict();
 
 const lineFeedbackSchema = z
   .object({
-    excerpt: z.string(),
-    comment: z.string(),
+    excerpt: z.string().max(500),
+    comment: z.string().max(700),
     severity: z.enum(["hinweis", "wichtig", "kritisch"]),
   })
   .strict();
@@ -88,16 +89,16 @@ export const correctionResponseSchema = z
   .object({
     mode: z.literal("correction"),
     disclaimer: z.literal("Unverbindliche KI-Schätzung – keine offizielle Klausurbewertung"),
-    detectedMaterials: z.array(z.string()),
-    summary: z.string(),
+    detectedMaterials: z.array(z.string().max(400)).max(10),
+    summary: z.string().max(1_200),
     estimatedScore: scoreSchema,
-    rubric: z.array(rubricItemSchema),
-    strengths: z.array(z.string()),
-    issues: z.array(z.string()),
-    lineFeedback: z.array(lineFeedbackSchema),
-    missingIssues: z.array(z.string()),
-    improvedExamples: z.array(z.string()),
-    nextLearningSteps: z.array(z.string()),
+    rubric: z.array(rubricItemSchema).min(3).max(6),
+    strengths: z.array(z.string().max(400)).max(4),
+    issues: z.array(z.string().max(500)).max(5),
+    lineFeedback: z.array(lineFeedbackSchema).max(8),
+    missingIssues: z.array(z.string().max(400)).max(4),
+    improvedExamples: z.array(z.string().max(700)).max(3),
+    nextLearningSteps: z.array(z.string().max(350)).max(3),
     ...baseResponseFields,
   })
   .strict();
@@ -124,8 +125,14 @@ export const attachmentReferenceSchema = z
     name: z.string(),
     mimeType: z.string(),
     extractedText: z.string().max(120_000),
+    documentType: z.enum(DOCUMENT_TYPES).optional(),
+    pageCount: z.number().int().positive().max(150).nullable().optional(),
+    legibility: z.enum(["gut", "teilweise", "schlecht"]).nullable().optional(),
+    warnings: z.array(z.string().max(500)).max(10).optional(),
   })
   .strict();
+
+export type AttachmentReference = z.infer<typeof attachmentReferenceSchema>;
 
 export const assistantRequestSchema = z
   .object({

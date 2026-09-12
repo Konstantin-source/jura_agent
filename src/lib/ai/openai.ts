@@ -36,6 +36,25 @@ function removeRedundantSourceWarnings(answer: AssistantResponse): AssistantResp
   } as AssistantResponse;
 }
 
+function calibrateCorrection(answer: AssistantResponse, request: AssistantRequest): AssistantResponse {
+  if (answer.mode !== "correction") return answer;
+
+  const documentTypes = new Set((request.attachments ?? []).map((attachment) => attachment.documentType));
+  const hasStudentAnswer = documentTypes.has("bearbeitung") || documentTypes.has("kombiniertes-klausurdokument");
+  const hasTaskMaterial = documentTypes.has("sachverhalt") || documentTypes.has("bearbeitervermerk") || documentTypes.has("kombiniertes-klausurdokument");
+  const weakEvidence = !hasStudentAnswer || (request.attachments ?? []).some((attachment) => attachment.legibility === "schlecht");
+  const confidence = weakEvidence ? "niedrig" : !hasTaskMaterial && answer.estimatedScore.confidence === "hoch" ? "mittel" : answer.estimatedScore.confidence;
+  const minimumSpread = weakEvidence ? 3 : !hasTaskMaterial ? 2 : 0;
+  const central = answer.estimatedScore.central;
+  const min = Math.min(answer.estimatedScore.min, central, Math.max(0, central - minimumSpread));
+  const max = Math.max(answer.estimatedScore.max, central, Math.min(18, central + minimumSpread));
+
+  return {
+    ...answer,
+    estimatedScore: { ...answer.estimatedScore, min, central, max, confidence },
+  };
+}
+
 export async function generateWithOpenAI(
   request: AssistantRequest,
   research: LegalResearchResult,
@@ -75,7 +94,10 @@ export async function generateWithOpenAI(
     throw new Error(refusal?.refusal ?? "Das Modell lieferte keine strukturierte Antwort.");
   }
 
-  const answer = removeRedundantSourceWarnings(assistantResponseSchema.parse(response.output_parsed));
+  const answer = calibrateCorrection(
+    removeRedundantSourceWarnings(assistantResponseSchema.parse(response.output_parsed)),
+    request,
+  );
   validateResponseCitations(answer, research.sources);
   return {
     answer,

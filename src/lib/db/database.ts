@@ -5,19 +5,27 @@ import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { getServerEnvironment } from "@/lib/config/env";
 
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 let database: DatabaseSync | null = null;
+
+function runMigration(db: DatabaseSync, sql: string): void {
+  db.exec("BEGIN IMMEDIATE");
+  try {
+    db.exec(sql);
+    db.exec("COMMIT");
+  } catch (error) {
+    db.exec("ROLLBACK");
+    throw error;
+  }
+}
 
 export function migrateDatabase(db: DatabaseSync): void {
   const versionRow = db.prepare("PRAGMA user_version").get() as { user_version: number };
   if (versionRow.user_version > SCHEMA_VERSION) {
     throw new Error(`Die lokale Datenbankversion ${versionRow.user_version} ist neuer als die App unterstützt.`);
   }
-  if (versionRow.user_version === SCHEMA_VERSION) return;
-
-  db.exec("BEGIN IMMEDIATE");
-  try {
-    db.exec(`
+  if (versionRow.user_version < 1) {
+    runMigration(db, `
       CREATE TABLE IF NOT EXISTS users (
         id TEXT PRIMARY KEY,
         email TEXT NOT NULL UNIQUE COLLATE NOCASE,
@@ -114,10 +122,21 @@ export function migrateDatabase(db: DatabaseSync): void {
 
       PRAGMA user_version = 1;
     `);
-    db.exec("COMMIT");
-  } catch (error) {
-    db.exec("ROLLBACK");
-    throw error;
+  }
+
+  if (versionRow.user_version < 2) {
+    runMigration(db, `
+      ALTER TABLE documents ADD COLUMN document_type TEXT NOT NULL DEFAULT 'sonstiges'
+        CHECK (document_type IN (
+          'bearbeitung', 'sachverhalt', 'bearbeitervermerk', 'lösungsskizze',
+          'bewertungsbogen', 'kombiniertes-klausurdokument', 'skript', 'notiz', 'sonstiges'
+        ));
+      ALTER TABLE documents ADD COLUMN legibility TEXT
+        CHECK (legibility IS NULL OR legibility IN ('gut', 'teilweise', 'schlecht'));
+      ALTER TABLE documents ADD COLUMN extraction_warnings_json TEXT NOT NULL DEFAULT '[]'
+        CHECK (json_valid(extraction_warnings_json));
+      PRAGMA user_version = 2;
+    `);
   }
 }
 function initializeDatabase(): DatabaseSync {

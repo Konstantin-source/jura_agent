@@ -1,4 +1,30 @@
-const REFERENCE_PATTERN = /(?:§{1,2}|Art\.?)\s*\d+[a-z]?(?:\s*Abs\.\s*\d+)?\s*(?:S\.\s*\d+)?\s*([A-ZÄÖÜ][A-Za-zÄÖÜäöüß.\-\s]{1,20})?/g;
+const LAW_ABBREVIATIONS = "BGB|VwGO|VwVfG|GG|StGB|ZPO|StPO|HGB";
+const SECTION_ENTRY = String.raw`\d+[a-z]?(?:\s*(?:Abs\.?|Absatz)\s*(?:\d+|[IVX]+))?(?:\s+(?:[IVX]+))?(?:\s*(?:S\.?|Satz)\s*\d+)?(?:\s*(?:Nr\.?)\s*\d+)?`;
+
+export function extractLegalReferences(text: string): string[] {
+  const direct = new RegExp(
+    String.raw`(?:§{1,2}\s*${SECTION_ENTRY}(?:\s*,\s*${SECTION_ENTRY})*|Art\.?\s*${SECTION_ENTRY})\s+(?:${LAW_ABBREVIATIONS})\b`,
+    "gi",
+  );
+  const reverse = new RegExp(
+    String.raw`\b(?:${LAW_ABBREVIATIONS})\b\s*(?:§{1,2}|Art\.?)\s*${SECTION_ENTRY}`,
+    "gi",
+  );
+  const matches = [...text.matchAll(direct), ...text.matchAll(reverse)]
+    .map((match) => ({ index: match.index ?? 0, text: match[0].trim().replace(/\s+/g, " ") }))
+    .sort((a, b) => a.index - b.index)
+    .map((match) => match.text);
+
+  if (matches.length > 0) {
+    return matches.filter((reference, index, all) =>
+      all.findIndex((candidate) => candidate.toLowerCase() === reference.toLowerCase()) === index
+    ).slice(0, 8);
+  }
+
+  return Array.from(text.matchAll(/(?:§{1,2}|Art\.?)\s*\d+[a-z]?/gi), (match) => match[0].trim())
+    .filter((reference, index, all) => all.indexOf(reference) === index)
+    .slice(0, 8);
+}
 
 const CURRENT_LAW_TERMS = [
   "aktuell",
@@ -40,7 +66,7 @@ const SEARCH_STOP_WORDS = new Set([
 ]);
 
 export function decideLegalRetrieval(query: string, mode: string): RetrievalDecision {
-  const references = Array.from(query.matchAll(REFERENCE_PATTERN), (match) => match[0].trim());
+  const references = extractLegalReferences(query);
   const normalized = query.toLowerCase();
   const wantsCaseLaw = ["rechtsprechung", "urteil", "beschluss", "bgh", "bverwg", "bverfg", "ovg"].some(
     (term) => normalized.includes(term),
@@ -62,6 +88,20 @@ export function decideLegalRetrieval(query: string, mode: string): RetrievalDeci
     references,
     wantsCaseLaw,
   };
+}
+
+export function buildCorrectionResearchQuery(
+  subject: string,
+  query: string,
+  attachmentTexts: string[],
+  previousQuestion = "",
+): string {
+  const documentReferences = extractLegalReferences(attachmentTexts.join("\n"));
+  return [
+    `${subject}: ${query}`,
+    documentReferences.length ? `Normen aus den Klausurunterlagen: ${documentReferences.join("; ")}` : "",
+    previousQuestion ? `Kontext: ${previousQuestion}` : "",
+  ].filter(Boolean).join(" ");
 }
 
 export function extractLawAndSection(query: string): { law: string; section?: string } | null {

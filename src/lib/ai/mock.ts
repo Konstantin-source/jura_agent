@@ -115,7 +115,7 @@ export function createDemoResponse(
       : "Im Schuldrecht führt ein guter Aufbau von der Anspruchsgrundlage über ihre Voraussetzungen bis zu Einwendungen und Einreden.",
     preciseExplanation: concernsAdministrativeLaw
       ? "Bei belastenden Verwaltungsakten ist die Ermächtigungsgrundlage Ausgangspunkt. Danach folgen Zuständigkeit, Verfahren und Form sowie die tatbestandlichen Voraussetzungen. Auf Rechtsfolgenseite ist besonders zwischen gebundener Entscheidung und Ermessen zu unterscheiden. Bei Aufhebungstatbeständen müssen außerdem Vertrauensschutz und die richtige landesrechtliche Normfassung beachtet werden."
-      : "Bei § 280 Abs. 1 BGB sind Schuldverhältnis, Pflichtverletzung, Vertretenmüssen und Schaden zu prüfen. Das Vertretenmüssen wird vermutet; die Abgrenzung zu Schadensersatz statt der Leistung entscheidet darüber, ob zusätzliche Voraussetzungen wie eine Fristsetzung hinzukommen.",
+      : "In der Klausur prüfst du typischerweise: 1. Besteht ein Schuldverhältnis? 2. Liegt eine Pflichtverletzung vor? 3. Hat der Schuldner die Pflichtverletzung zu vertreten? 4. Ist ein Schaden entstanden? Je nach Störung kommen zusätzliche Voraussetzungen wie eine Fristsetzung hinzu.",
     example: concernsAdministrativeLaw
       ? "Eine Behörde nimmt einen begünstigenden Bescheid zurück. Dann genügt es nicht, nur die ursprüngliche Rechtswidrigkeit festzustellen; Vertrauensschutz und Ermessen gehören in die Prüfung."
       : "Liefert V mangelhaft und beschädigt die Sache weitere Rechtsgüter, ist zu trennen, welcher Schaden neben und welcher statt der Leistung verlangt wird.",

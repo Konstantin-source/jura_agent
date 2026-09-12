@@ -23,12 +23,17 @@ import type { LegalSourceRecord } from "@/lib/legal/types";
 import { AssistantAnswerView } from "@/components/assistant-answer";
 import { useRuntimeConfig } from "@/components/runtime-provider";
 import { DEFAULT_MODEL_PRESET, MODEL_PRESETS, type ModelPresetId } from "@/lib/ai/models";
+import { DOCUMENT_TYPE_LABELS, DOCUMENT_TYPES, type DocumentType } from "@/lib/documents/types";
 
 interface Attachment {
   id: string;
   name: string;
   mimeType: string;
   extractedText: string;
+  documentType?: DocumentType;
+  pageCount?: number | null;
+  legibility?: "gut" | "teilweise" | "schlecht" | null;
+  warnings?: string[];
 }
 
 interface ApiResult {
@@ -146,7 +151,10 @@ export function LearningWorkspace() {
       };
       if (!response.ok || !payload.document) throw new Error(payload.error ?? "Datei konnte nicht verarbeitet werden.");
       setAttachments((current) => [...current, payload.document!]);
-      if (payload.warnings?.length) setUploadNote(payload.warnings.join(" "));
+      const detectedType = payload.document.documentType
+        ? `Erkannt als ${DOCUMENT_TYPE_LABELS[payload.document.documentType]}. Die Rolle kannst du am Anhang ändern.`
+        : "";
+      setUploadNote([detectedType, ...(payload.warnings ?? [])].filter(Boolean).join(" ") || null);
       if (mode !== "correction" && /klausur|lösung/i.test(file.name)) setMode("correction");
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Upload fehlgeschlagen.");
@@ -218,6 +226,10 @@ export function LearningWorkspace() {
     window.setTimeout(() => composerRef.current?.focus(), 0);
   }
 
+  function setAttachmentType(id: string, documentType: DocumentType) {
+    setAttachments((items) => items.map((item) => item.id === id ? { ...item, documentType } : item));
+  }
+
   return (
     <div className="learning-page">
       <header className="workspace-header">
@@ -245,7 +257,7 @@ export function LearningWorkspace() {
               <span className={`empty-illustration ${mode}`}><activeMode.icon size={31} /></span>
               <p className="section-kicker">{activeMode.label}</p>
               <h2>{mode === "correction" ? "Lade deine Bearbeitung hoch." : mode === "socratic" ? "Welchen Fall lösen wir zusammen?" : "Was soll heute klar werden?"}</h2>
-              <p>{mode === "correction" ? "Fotografiere einzelne Seiten oder wähle ein PDF. Sachverhalt und Lösungsskizze verbessern die Schätzung." : "Wähle eine Idee oder formuliere deine eigene Frage. Du bekommst eine strukturierte, quellenklare Antwort."}</p>
+              <p>{mode === "correction" ? "Am zuverlässigsten ist es, Sachverhalt, Bearbeitervermerk und eigene Bearbeitung getrennt hochzuladen. Die erkannte Rolle jeder Unterlage kannst du anschließend ändern." : "Wähle eine Idee oder formuliere deine eigene Frage. Du bekommst eine strukturierte, quellenklare Antwort."}</p>
               <div className="starter-list">
                 {STARTERS[mode].map((starter) => (
                   <button key={starter} type="button" onClick={() => { setQuery(starter); composerRef.current?.focus(); }}>
@@ -293,7 +305,11 @@ export function LearningWorkspace() {
               <p className="section-kicker">Unterlagen</p>
               <div className="attachment-list">
                 {attachments.map((attachment) => (
-                  <div key={attachment.id}><FileCheck2 size={16} /><span>{attachment.name}</span><button type="button" onClick={() => setAttachments((items) => items.filter((item) => item.id !== attachment.id))} aria-label={`${attachment.name} entfernen`}><X size={15} /></button></div>
+                  <div key={attachment.id}>
+                    <FileCheck2 size={16} />
+                    <span>{attachment.name}<small>{attachment.documentType ? DOCUMENT_TYPE_LABELS[attachment.documentType] : "Unterlage"}</small></span>
+                    <button type="button" onClick={() => setAttachments((items) => items.filter((item) => item.id !== attachment.id))} aria-label={`${attachment.name} entfernen`}><X size={15} /></button>
+                  </div>
                 ))}
               </div>
             </div>
@@ -309,7 +325,21 @@ export function LearningWorkspace() {
           </div>
           {attachments.length > 0 && (
             <div className="composer-attachments">
-              {attachments.map((attachment) => <span key={attachment.id}><FileCheck2 size={14} />{attachment.name}<button type="button" onClick={() => setAttachments((items) => items.filter((item) => item.id !== attachment.id))}><X size={13} /></button></span>)}
+              {attachments.map((attachment) => (
+                <span className="composer-attachment" key={attachment.id}>
+                  <FileCheck2 size={14} />
+                  <span className="composer-attachment-name">{attachment.name}</span>
+                  <select
+                    aria-label={`Art von ${attachment.name}`}
+                    value={attachment.documentType ?? "sonstiges"}
+                    disabled={busy}
+                    onChange={(event) => setAttachmentType(attachment.id, event.target.value as DocumentType)}
+                  >
+                    {DOCUMENT_TYPES.map((type) => <option key={type} value={type}>{DOCUMENT_TYPE_LABELS[type]}</option>)}
+                  </select>
+                  <button type="button" onClick={() => setAttachments((items) => items.filter((item) => item.id !== attachment.id))} aria-label={`${attachment.name} entfernen`}><X size={13} /></button>
+                </span>
+              ))}
             </div>
           )}
           <div className="composer-input-row">

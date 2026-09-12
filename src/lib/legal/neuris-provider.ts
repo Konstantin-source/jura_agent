@@ -65,6 +65,41 @@ function compactExcerpt(result: NeurisSearchResult): string {
     .slice(0, 1_200);
 }
 
+function compactDocumentPayload(payload: Record<string, unknown>): string {
+  const collected: string[] = [];
+  let visited = 0;
+  let collectedCharacters = 0;
+
+  function visit(value: unknown, key = "") {
+    if (visited >= 2_000 || collectedCharacters >= 8_000) return;
+    visited += 1;
+    if (typeof value === "string") {
+      if (/(?:text|content|body|article|heading|headline|name|description|outline)/i.test(key) && !/^https?:\/\//i.test(value)) {
+        const normalized = value.trim().replace(/\s+/g, " ");
+        if (normalized.length > 1) {
+          collected.push(normalized);
+          collectedCharacters += normalized.length;
+        }
+      }
+      return;
+    }
+    if (Array.isArray(value)) {
+      value.forEach((entry) => visit(entry, key));
+      return;
+    }
+    if (value && typeof value === "object") {
+      Object.entries(value).forEach(([nestedKey, nestedValue]) => visit(nestedValue, nestedKey));
+    }
+  }
+
+  visit(payload);
+  const excerpt = collected
+    .filter((value, index, all) => all.indexOf(value) === index)
+    .join("\n")
+    .slice(0, 6_000);
+  return excerpt || JSON.stringify(payload).slice(0, 2_400);
+}
+
 export class NeurisProvider implements LegalSourceProvider {
   readonly name = "NeuRIS" as const;
 
@@ -153,7 +188,7 @@ export class NeurisProvider implements LegalSourceProvider {
       kind: candidate.pathname.includes("case-law") ? "case-law" : "legislation",
       provider: this.name,
       url: toHumanUrl(candidate.toString(), candidate.pathname.includes("case-law") ? "case-law" : "legislation"),
-      excerpt: JSON.stringify(payload).slice(0, 1_200),
+      excerpt: compactDocumentPayload(payload),
       official: true,
       verifiedAt: new Date().toISOString(),
       decisionDate: typeof payload.decisionDate === "string" ? payload.decisionDate : null,

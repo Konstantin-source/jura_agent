@@ -5,8 +5,14 @@ import { generateWithOpenAI } from "@/lib/ai/openai";
 import { requireAppUser, AuthenticationError } from "@/lib/auth/server";
 import { getServerEnvironment } from "@/lib/config/env";
 import { calculateRunCostEur, getBudgetState } from "@/lib/cost/pricing";
-import { getConversationContext, getMonthlySpendEur, persistInteraction } from "@/lib/data/persistence";
+import {
+  getConversationContext,
+  getMonthlySpendEur,
+  getOwnedAttachmentReferences,
+  persistInteraction,
+} from "@/lib/data/persistence";
 import { deriveSourceStatus, researchOfficialSources } from "@/lib/legal/composite-provider";
+import { buildCorrectionResearchQuery } from "@/lib/legal/query-parser";
 import { isSameOriginRequest } from "@/lib/security/origin";
 
 export const runtime = "nodejs";
@@ -49,18 +55,35 @@ export async function POST(request: Request) {
       );
     }
 
-    const history = input.conversationId ? getConversationContext(user.id, input.conversationId) : [];
+    const effectiveInput = {
+      ...input,
+      attachments: getOwnedAttachmentReferences(user.id, input.attachments ?? []),
+    };
+    const history = effectiveInput.conversationId ? getConversationContext(user.id, effectiveInput.conversationId) : [];
     const previousQuestion = [...history].reverse().find((message) => message.role === "user")?.content ?? "";
+    const researchQuery = effectiveInput.mode === "correction"
+      ? buildCorrectionResearchQuery(
+          effectiveInput.subject,
+          effectiveInput.query,
+          (effectiveInput.attachments ?? []).map((attachment) => attachment.extractedText),
+          previousQuestion,
+        )
+      : `${effectiveInput.subject}: ${effectiveInput.query}${previousQuestion ? ` Kontext: ${previousQuestion}` : ""}`;
     const research = await researchOfficialSources(
-      `${input.subject}: ${input.query}${previousQuestion ? ` Kontext: ${previousQuestion}` : ""}`,
-      input.mode,
+      researchQuery,
+      effectiveInput.mode,
     );
-    const sourceStatus = deriveSourceStatus(research.sources, Boolean(input.attachments?.length));
-    const generated = await generateWithOpenAI(input, research, sourceStatus, history);
+    const hasSupportingCourseDocument = (effectiveInput.attachments ?? []).some((attachment) =>
+      attachment.documentType === "lösungsskizze" ||
+      attachment.documentType === "bewertungsbogen" ||
+      attachment.documentType === "skript"
+    );
+    const sourceStatus = deriveSourceStatus(research.sources, hasSupportingCourseDocument);
+    const generated = await generateWithOpenAI(effectiveInput, research, sourceStatus, history);
     const costEur = calculateRunCostEur(generated.model, generated.usage, env.EUR_PER_USD);
     const conversationId = await persistInteraction({
       userId: user.id,
-      request: input,
+      request: effectiveInput,
       response: generated,
       sources: research.sources,
       costEur,
