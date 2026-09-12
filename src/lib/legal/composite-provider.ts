@@ -35,11 +35,13 @@ export async function researchOfficialSources(
   const sources: LegalSourceRecord[] = [];
 
   attemptedProviders.push(neuris.name);
-  for (const searchQuery of buildLegalSearchQueries(query)) {
+  const searchQueries = buildLegalSearchQueries(query);
+  const legislationLimitPerQuery = decision.references.length > 1 ? 2 : decision.wantsCaseLaw ? 2 : 4;
+  for (const searchQuery of searchQueries) {
     try {
-      const legislation = await neuris.searchLegislation(searchQuery, { limit: decision.wantsCaseLaw ? 2 : 4 });
-      sources.push(...legislation);
-      if (sources.length >= 4) break;
+      const legislation = await neuris.searchLegislation(searchQuery, { limit: legislationLimitPerQuery });
+      sources.push(...legislation.slice(0, legislationLimitPerQuery));
+      if (sources.length >= 6) break;
     } catch (error) {
       warnings.push(error instanceof Error ? error.message : "NeuRIS war nicht erreichbar.");
       break;
@@ -93,12 +95,12 @@ export async function researchOfficialSources(
 
 export function deriveSourceStatus(
   sources: LegalSourceRecord[],
-  hasCourseDocument: boolean,
+  hasSupportingCourseDocument: boolean,
 ): SourceStatus {
   if (sources.length > 0 && sources.every((source) => source.official && source.verifiedAt)) {
     return "Amtlich verifiziert";
   }
-  if (sources.length === 0 && hasCourseDocument) return "Mit Kursunterlage belegt";
-  if (sources.length > 0 || hasCourseDocument) return "Teilweise verifiziert";
+  if (sources.length === 0 && hasSupportingCourseDocument) return "Mit Kursunterlage belegt";
+  if (sources.length > 0 || hasSupportingCourseDocument) return "Teilweise verifiziert";
   return "Nicht aktuell verifiziert";
 }

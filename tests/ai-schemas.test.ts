@@ -14,7 +14,11 @@ const validCorrection = {
     basis: "Vollständige Probeklausur.",
     assumptions: [],
   },
-  rubric: [{ criterion: "Subsumtion", weight: "40 %", assessment: "Ausbaufähig" }],
+  rubric: [
+    { criterion: "Rechtskenntnis", weight: "30 %", assessment: "Im Ansatz vorhanden" },
+    { criterion: "Subsumtion", weight: "40 %", assessment: "Ausbaufähig" },
+    { criterion: "Aufbau", weight: "30 %", assessment: "Nachvollziehbar" },
+  ],
   strengths: ["Aufbau"],
   issues: ["Subsumtion"],
   lineFeedback: [{ excerpt: "Daher ...", comment: "Begründen.", severity: "wichtig" as const }],

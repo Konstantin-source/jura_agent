@@ -13,15 +13,17 @@ test("creates a transparent structured demo explanation", async ({ page }) => {
   await page.goto("/lernen?mode=explanation");
   const prompt = page.getByRole("textbox");
   const modelSelect = page.getByRole("combobox", { name: "Modellstärke" });
+  await page.getByLabel("Fach auswählen").selectOption("Schuldrecht II");
   await expect(modelSelect).toHaveValue("normal");
   await expect(modelSelect.locator("option")).toHaveCount(4);
   await modelSelect.selectOption("advanced");
-  await page.getByRole("button", { name: "Wie prüfe ich die Rücknahme nach § 48 VwVfG?" }).click();
+  await page.getByRole("button", { name: "Erkläre mir Schadensersatz aus § 280 Abs. 1 BGB." }).click();
   await page.getByRole("button", { name: "Absenden" }).click();
   await expect(prompt).toHaveValue("");
   await expect(page.getByText("Demoantwort", { exact: true })).toBeVisible();
   await expect(page.locator(".user-message")).toHaveCount(1);
   await expect(page.getByRole("heading", { name: "Genauer" })).toBeVisible();
+  await expect(page.locator(".formatted-numbered-list li")).toHaveCount(4);
   await expect(page.getByRole("heading", { name: "Verwendete Quellen" })).toBeVisible();
 
   await prompt.fill("Warum ist der Vertrauensschutz dabei wichtig?");
@@ -32,7 +34,7 @@ test("creates a transparent structured demo explanation", async ({ page }) => {
   await expect(page.getByText("Warum ist der Vertrauensschutz dabei wichtig?", { exact: true })).toBeVisible();
 
   await page.goto("/chats");
-  await page.getByRole("button", { name: /Wie prüfe ich die Rücknahme/ }).click();
+  await page.getByRole("button", { name: /Erkläre mir Schadensersatz/ }).click();
   await expect(page.locator(".user-message")).toHaveCount(2);
   await expect(page.locator(".assistant-answer")).toHaveCount(2);
 });

@@ -1,7 +1,10 @@
 import type { AssistantRequest, SourceStatus } from "@/lib/ai/schemas";
 import type { LegalResearchResult } from "@/lib/legal/types";
 import { wrapUntrustedDocumentText } from "@/lib/documents/policy";
+import { DOCUMENT_TYPE_LABELS } from "@/lib/documents/types";
 import { renderSkillsForPrompt, resolveSkills } from "@/lib/skills/resolver";
+
+const MAX_DOCUMENT_EVIDENCE_CHARS = 180_000;
 
 function renderSources(research: LegalResearchResult): string {
   if (research.sources.length === 0) return "Keine amtliche Quelle wurde für diese Anfrage bereitgestellt.";
@@ -41,13 +44,32 @@ export function buildSystemPrompt(
 }
 
 export function buildUserPrompt(request: AssistantRequest): string {
-  const attachments = (request.attachments ?? [])
-    .map((attachment) =>
-      `Datei: ${attachment.name} (${attachment.mimeType})\n${wrapUntrustedDocumentText(attachment.extractedText)}`,
-    )
-    .join("\n\n");
+  let remainingCharacters = MAX_DOCUMENT_EVIDENCE_CHARS;
+  const attachments = (request.attachments ?? []).map((attachment, index) => {
+    const extractedText = attachment.extractedText.trim();
+    const includedText = extractedText.slice(0, Math.max(0, remainingCharacters));
+    remainingCharacters -= includedText.length;
+    const truncated = includedText.length < extractedText.length;
+    const metadata = [
+      `Kennung: D${index + 1}`,
+      `Dateiname: ${attachment.name}`,
+      `Dokumentrolle: ${attachment.documentType ? DOCUMENT_TYPE_LABELS[attachment.documentType] : "nicht klassifiziert"}`,
+      `Seiten: ${attachment.pageCount ?? "unbekannt"}`,
+      `Lesbarkeit: ${attachment.legibility ?? "unbekannt"}`,
+      `OCR-Warnungen: ${attachment.warnings?.join(" | ") || "keine"}`,
+      `Kontextkürzung: ${truncated ? "ja – nachfolgender Text ist unvollständig" : "nein"}`,
+      "--- BEGINN DOKUMENTTEXT ---",
+      includedText || "[Kein auswertbarer Text erkannt]",
+      "--- ENDE DOKUMENTTEXT ---",
+    ].join("\n");
+    return wrapUntrustedDocumentText(metadata);
+  }).join("\n\n");
+
   return [
-    `Anfrage: ${request.query}`,
-    attachments ? `Hochgeladene Unterlagen:\n${attachments}` : "Keine hochgeladenen Unterlagen.",
+    request.mode === "correction" ? "KORREKTURAUFTRAG" : "ANFRAGE",
+    request.query,
+    attachments
+      ? `MATERIALVERZEICHNIS UND DOKUMENTTEXT\n${attachments}`
+      : "MATERIALVERZEICHNIS\nKeine hochgeladenen Unterlagen.",
   ].join("\n\n");
 }

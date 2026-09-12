@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { buildLegalSearchQueries, decideLegalRetrieval, extractLawAndSection } from "@/lib/legal/query-parser";
+import {
+  buildCorrectionResearchQuery,
+  buildLegalSearchQueries,
+  decideLegalRetrieval,
+  extractLawAndSection,
+  extractLegalReferences,
+} from "@/lib/legal/query-parser";
 
 describe("legal retrieval decision", () => {
   it("requires official retrieval for concrete provisions", () => {
@@ -24,5 +30,17 @@ describe("legal retrieval decision", () => {
     expect(extractLawAndSection("BGB § 281")).toEqual({ law: "BGB", section: "281" });
     expect(extractLawAndSection("Allgemeines Verwaltungsrecht: Rücknahme eines Bescheids"))
       .toEqual({ law: "VWVFG" });
+  });
+
+  it("extracts exact provisions from uploaded correction materials", () => {
+    expect(extractLegalReferences("A verlangt nach § 280 Abs. 1 BGB Ersatz. Art. 20 Abs. 3 GG ist nicht einschlägig.")).toEqual([
+      "§ 280 Abs. 1 BGB",
+      "Art. 20 Abs. 3 GG",
+    ]);
+    expect(buildCorrectionResearchQuery(
+      "Schuldrecht II",
+      "Korrigiere meine Lösung.",
+      ["Geprüft wurden § 280 Abs. 1 BGB und § 281 BGB."],
+    )).toContain("Normen aus den Klausurunterlagen: § 280 Abs. 1 BGB; § 281 BGB");
   });
 });

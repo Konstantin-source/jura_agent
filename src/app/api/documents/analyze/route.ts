@@ -8,7 +8,7 @@ import {
   persistStandaloneAiRun,
 } from "@/lib/data/persistence";
 import { extractDocumentWithOpenAI, estimatePdfPageCount } from "@/lib/documents/extract";
-import { validateUpload } from "@/lib/documents/policy";
+import { inferDocumentType, validateUpload } from "@/lib/documents/policy";
 import { isSameOriginRequest } from "@/lib/security/origin";
 
 export const runtime = "nodejs";
@@ -29,16 +29,39 @@ export async function POST(request: Request) {
 
     if (file.type === "text/plain" || file.type === "text/markdown") {
       const extractedText = (await file.text()).slice(0, 120_000);
+      const documentType = inferDocumentType(file.name);
       if (user.demo) {
         return NextResponse.json({
-          document: { id: crypto.randomUUID(), name: file.name, mimeType: file.type, extractedText },
+          document: {
+            id: crypto.randomUUID(),
+            name: file.name,
+            mimeType: file.type,
+            extractedText,
+            documentType,
+            pageCount: 1,
+            legibility: "gut",
+            warnings: [],
+          },
           warnings: ["Demo-Modus: Die Datei wurde nicht dauerhaft gespeichert."],
           demo: true,
         });
       }
-      const stored = await persistDocument(user.id, file, extractedText, 1);
+      const stored = await persistDocument(user.id, file, extractedText, 1, {
+        documentType,
+        legibility: "gut",
+        warnings: [],
+      });
       return NextResponse.json({
-        document: { id: stored.id, name: file.name, mimeType: file.type, extractedText },
+        document: {
+          id: stored.id,
+          name: file.name,
+          mimeType: file.type,
+          extractedText,
+          documentType,
+          pageCount: 1,
+          legibility: "gut",
+          warnings: [],
+        },
         warnings: [],
         demo: false,
       });
@@ -52,7 +75,10 @@ export async function POST(request: Request) {
           name: file.name,
           mimeType: file.type,
           extractedText: "",
+          documentType: inferDocumentType(file.name),
           pageCount: file.type === "application/pdf" ? estimatePdfPageCount(bytes) : 1,
+          legibility: null,
+          warnings: ["Im Demo-Modus wurde kein Text erkannt."],
         },
         warnings: ["Demo-Modus: Datei validiert, aber weder hochgeladen noch per KI ausgelesen."],
         demo: true,
@@ -71,6 +97,11 @@ export async function POST(request: Request) {
       file,
       extracted.extraction.extractedText.slice(0, 120_000),
       extracted.extraction.pageCount,
+      {
+        documentType: extracted.extraction.documentType,
+        legibility: extracted.extraction.legibility,
+        warnings: extracted.extraction.warnings,
+      },
     );
     await persistStandaloneAiRun({
       userId: user.id,
@@ -87,9 +118,11 @@ export async function POST(request: Request) {
         id: stored.id,
         name: file.name,
         mimeType: file.type,
-        extractedText: extracted.extraction.extractedText,
+        extractedText: extracted.extraction.extractedText.slice(0, 120_000),
+        documentType: extracted.extraction.documentType,
         pageCount: extracted.extraction.pageCount,
         legibility: extracted.extraction.legibility,
+        warnings: extracted.extraction.warnings,
       },
       warnings: extracted.extraction.warnings,
       demo: false,
